@@ -12,16 +12,22 @@ class Embedding(nn.Module):
 
 
 class GRU4REC(nn.Module):
-    def __init__(self, item_size, embedding_dim, hidden_size, num_layers, dropout_hidden):
+    def __init__(
+        self, item_size, embedding_dim, hidden_size, num_layers, dropout_hidden
+    ):
         super(GRU4REC, self).__init__()
-        self.module_dict = nn.ModuleDict({
-            'gru': nn.GRU(embedding_dim,
-                          hidden_size,
-                          num_layers,
-                          dropout=dropout_hidden,
-                          batch_first=True),
-            'item_embeddings': Embedding(item_size, embedding_dim),
-        })
+        self.module_dict = nn.ModuleDict(
+            {
+                "gru": nn.GRU(
+                    embedding_dim,
+                    hidden_size,
+                    num_layers,
+                    dropout=dropout_hidden,
+                    batch_first=True,
+                ),
+                "item_embeddings": Embedding(item_size, embedding_dim),
+            }
+        )
         # self.param = nn.ParameterDict({
         #     'hidden_size': hidden_size
         # })
@@ -36,8 +42,8 @@ class GRU4REC(nn.Module):
 
     def cross_entropy(self, seq_out, pos_ids, neg_ids):
         # [batch seq_len hidden_size]
-        pos_emb = self.module_dict['item_embeddings'](pos_ids)
-        neg_emb = self.module_dict['item_embeddings'](neg_ids)
+        pos_emb = self.module_dict["item_embeddings"](pos_ids)
+        neg_emb = self.module_dict["item_embeddings"](neg_ids)
 
         # [batch*seq_len hidden_size]
         pos = pos_emb.view(-1, pos_emb.size(2))
@@ -53,11 +59,11 @@ class GRU4REC(nn.Module):
         # [batch*seq_len]
         istarget = (pos_ids > 0).view(pos_ids.size(0) * pos_ids.size(1)).float()
         loss = torch.sum(
-            - torch.log(torch.sigmoid(pos_logits) + 1e-24) * istarget -
-            torch.log(1 - torch.sigmoid(neg_logits) + 1e-24) * istarget
+            -torch.log(torch.sigmoid(pos_logits) + 1e-24) * istarget
+            - torch.log(1 - torch.sigmoid(neg_logits) + 1e-24) * istarget
         ) / torch.sum(istarget)
 
         return loss
 
     def forward(self, input: torch.Tensor):
-        return self.module_dict['gru'](input)
+        return self.module_dict["gru"](input)

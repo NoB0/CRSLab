@@ -25,7 +25,10 @@ from torch import nn
 
 from crslab.model.base import BaseModel
 from crslab.model.utils.functions import edge_to_pyg_format
-from crslab.model.utils.modules.transformer import TransformerEncoder, TransformerDecoder
+from crslab.model.utils.modules.transformer import (
+    TransformerEncoder,
+    TransformerDecoder,
+)
 
 
 class TransformerModel(BaseModel):
@@ -69,39 +72,41 @@ class TransformerModel(BaseModel):
 
         """
         # vocab
-        self.vocab_size = vocab['vocab_size']
-        self.pad_token_idx = vocab['pad']
-        self.start_token_idx = vocab['start']
-        self.end_token_idx = vocab['end']
-        self.token_emb_dim = opt['token_emb_dim']
-        self.pretrain_embedding = side_data.get('embedding', None)
+        self.vocab_size = vocab["vocab_size"]
+        self.pad_token_idx = vocab["pad"]
+        self.start_token_idx = vocab["start"]
+        self.end_token_idx = vocab["end"]
+        self.token_emb_dim = opt["token_emb_dim"]
+        self.pretrain_embedding = side_data.get("embedding", None)
         # kg
-        self.n_word = vocab['n_word']
-        self.n_entity = vocab['n_entity']
-        self.pad_word_idx = vocab['pad_word']
-        self.pad_entity_idx = vocab['pad_entity']
-        entity_kg = side_data['entity_kg']
-        self.n_relation = entity_kg['n_relation']
-        entity_edges = entity_kg['edge']
-        self.entity_edge_idx, self.entity_edge_type = edge_to_pyg_format(entity_edges, 'RGCN')
+        self.n_word = vocab["n_word"]
+        self.n_entity = vocab["n_entity"]
+        self.pad_word_idx = vocab["pad_word"]
+        self.pad_entity_idx = vocab["pad_entity"]
+        entity_kg = side_data["entity_kg"]
+        self.n_relation = entity_kg["n_relation"]
+        entity_edges = entity_kg["edge"]
+        self.entity_edge_idx, self.entity_edge_type = edge_to_pyg_format(
+            entity_edges, "RGCN"
+        )
         self.entity_edge_idx = self.entity_edge_idx.to(device)
         self.entity_edge_type = self.entity_edge_type.to(device)
-        word_edges = side_data['word_kg']['edge']
-        self.word_edges = edge_to_pyg_format(word_edges, 'GCN').to(device)
-        self.num_bases = opt['num_bases']
-        self.kg_emb_dim = opt['kg_emb_dim']
+        word_edges = side_data["word_kg"]["edge"]
+        self.word_edges = edge_to_pyg_format(word_edges, "GCN").to(device)
+        self.num_bases = opt["num_bases"]
+        self.kg_emb_dim = opt["kg_emb_dim"]
         # transformer
-        self.n_heads = opt['n_heads']
-        self.n_layers = opt['n_layers']
-        self.ffn_size = opt['ffn_size']
-        self.dropout = opt['dropout']
-        self.attention_dropout = opt['attention_dropout']
-        self.relu_dropout = opt['relu_dropout']
-        self.learn_positional_embeddings = opt['learn_positional_embeddings']
-        self.embeddings_scale = opt['embeddings_scale']
-        self.reduction = opt['reduction']
-        self.n_positions = opt['n_positions']
-        self.longest_label = opt.get('longest_label', 1)
+        self.n_heads = opt["n_heads"]
+        self.n_layers = opt["n_layers"]
+        self.ffn_size = opt["ffn_size"]
+        self.dropout = opt["dropout"]
+        self.attention_dropout = opt["attention_dropout"]
+        self.relu_dropout = opt["relu_dropout"]
+        self.learn_positional_embeddings = opt["learn_positional_embeddings"]
+        self.embeddings_scale = opt["embeddings_scale"]
+        self.reduction = opt["reduction"]
+        self.n_positions = opt["n_positions"]
+        self.longest_label = opt.get("longest_label", 1)
         super(TransformerModel, self).__init__(opt, device)
 
     def build_model(self):
@@ -111,17 +116,25 @@ class TransformerModel(BaseModel):
     def _init_embeddings(self):
         if self.pretrain_embedding is not None:
             self.token_embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(self.pretrain_embedding, dtype=torch.float), freeze=False,
-                padding_idx=self.pad_token_idx)
+                torch.as_tensor(self.pretrain_embedding, dtype=torch.float),
+                freeze=False,
+                padding_idx=self.pad_token_idx,
+            )
         else:
-            self.token_embedding = nn.Embedding(self.vocab_size, self.token_emb_dim, self.pad_token_idx)
-            nn.init.normal_(self.token_embedding.weight, mean=0, std=self.kg_emb_dim ** -0.5)
+            self.token_embedding = nn.Embedding(
+                self.vocab_size, self.token_emb_dim, self.pad_token_idx
+            )
+            nn.init.normal_(
+                self.token_embedding.weight, mean=0, std=self.kg_emb_dim**-0.5
+            )
             nn.init.constant_(self.token_embedding.weight[self.pad_token_idx], 0)
 
-        logger.debug('[Finish init embeddings]')
+        logger.debug("[Finish init embeddings]")
 
     def _build_conversation_layer(self):
-        self.register_buffer('START', torch.tensor([self.start_token_idx], dtype=torch.long))
+        self.register_buffer(
+            "START", torch.tensor([self.start_token_idx], dtype=torch.long)
+        )
         self.conv_encoder = TransformerEncoder(
             n_heads=self.n_heads,
             n_layers=self.n_layers,
@@ -140,7 +153,11 @@ class TransformerModel(BaseModel):
         )
 
         self.conv_decoder = TransformerDecoder(
-            self.n_heads, self.n_layers, self.token_emb_dim, self.ffn_size, self.vocab_size,
+            self.n_heads,
+            self.n_layers,
+            self.token_emb_dim,
+            self.ffn_size,
+            self.vocab_size,
             embedding=self.token_embedding,
             dropout=self.dropout,
             attention_dropout=self.attention_dropout,
@@ -148,12 +165,12 @@ class TransformerModel(BaseModel):
             embeddings_scale=self.embeddings_scale,
             learn_positional_embeddings=self.learn_positional_embeddings,
             padding_idx=self.pad_token_idx,
-            n_positions=self.n_positions
+            n_positions=self.n_positions,
         )
 
         self.conv_loss = nn.CrossEntropyLoss(ignore_index=self.pad_token_idx)
 
-        logger.debug('[Finish build conv layer]')
+        logger.debug("[Finish build conv layer]")
 
     def _starts(self, batch_size):
         """Return bsz start tokens."""
@@ -164,9 +181,13 @@ class TransformerModel(BaseModel):
         start = self._starts(batch_size)
         inputs = torch.cat((start, response[:, :-1]), dim=-1).long()
 
-        dialog_latent, _ = self.conv_decoder(inputs, token_encoding)  # (bs, seq_len, dim)
+        dialog_latent, _ = self.conv_decoder(
+            inputs, token_encoding
+        )  # (bs, seq_len, dim)
 
-        gen_logits = F.linear(dialog_latent, self.token_embedding.weight)  # (bs, seq_len, vocab_size)
+        gen_logits = F.linear(
+            dialog_latent, self.token_embedding.weight
+        )  # (bs, seq_len, vocab_size)
         preds = gen_logits.argmax(dim=-1)
         return gen_logits, preds
 
@@ -176,7 +197,9 @@ class TransformerModel(BaseModel):
         incr_state = None
         logits = []
         for _ in range(self.longest_label):
-            dialog_latent, incr_state = self.conv_decoder(inputs, token_encoding, incr_state)
+            dialog_latent, incr_state = self.conv_decoder(
+                inputs, token_encoding, incr_state
+            )
             dialog_latent = dialog_latent[:, -1:, :]  # (bs, 1, dim)
 
             gen_logits = F.linear(dialog_latent, self.token_embedding.weight)
@@ -184,7 +207,9 @@ class TransformerModel(BaseModel):
             logits.append(gen_logits)
             inputs = torch.cat((inputs, preds), dim=1)
 
-            finished = ((inputs == self.end_token_idx).sum(dim=-1) > 0).sum().item() == batch_size
+            finished = (
+                (inputs == self.end_token_idx).sum(dim=-1) > 0
+            ).sum().item() == batch_size
             if finished:
                 break
         logits = torch.cat(logits, dim=1)
@@ -198,19 +223,25 @@ class TransformerModel(BaseModel):
         for i in range(self.longest_label):
             # at beginning there is 1 candidate, when i!=0 there are 4 candidates
             if i == 1:
-                token_encoding = (token_encoding[0].repeat(beam, 1, 1),
-                                  token_encoding[1].repeat(beam, 1, 1))
+                token_encoding = (
+                    token_encoding[0].repeat(beam, 1, 1),
+                    token_encoding[1].repeat(beam, 1, 1),
+                )
             if i != 0:
                 xs = []
                 for d in range(len(sequences[0])):
                     for j in range(batch_size):
                         text = sequences[j][d][0]
                         xs.append(text)
-                xs = torch.stack(xs).reshape(beam, batch_size, -1)  # (beam, batch_size, _)
+                xs = torch.stack(xs).reshape(
+                    beam, batch_size, -1
+                )  # (beam, batch_size, _)
 
-            dialog_latent, incr_state = self.conv_decoder(xs.reshape(len(sequences[0]) * batch_size, -1),
-                                                          token_encoding,
-                                                          incr_state)
+            dialog_latent, incr_state = self.conv_decoder(
+                xs.reshape(len(sequences[0]) * batch_size, -1),
+                token_encoding,
+                incr_state,
+            )
             dialog_latent = dialog_latent[:, -1:, :]  # (bs, 1, dim)
             gen_logits = F.linear(dialog_latent, self.token_embedding.weight)
 
@@ -229,15 +260,21 @@ class TransformerModel(BaseModel):
                         if logit == []:
                             logit_tmp = logits[n][j][0].unsqueeze(0)
                         else:
-                            logit_tmp = torch.cat((logit, logits[n][j][0].unsqueeze(0)), dim=0)
-                        seq_tmp = torch.cat((xs[n][j].reshape(-1), preds[n][j][0][k].reshape(-1)))
+                            logit_tmp = torch.cat(
+                                (logit, logits[n][j][0].unsqueeze(0)), dim=0
+                            )
+                        seq_tmp = torch.cat(
+                            (xs[n][j].reshape(-1), preds[n][j][0][k].reshape(-1))
+                        )
                         candidate = [seq_tmp, logit_tmp, prob * probs[n][j][0][k]]
                         all_candidates.append(candidate)
                 ordered = sorted(all_candidates, key=lambda tup: tup[2], reverse=True)
                 sequences[j] = ordered[:beam]
 
             # check if everyone has generated an end token
-            all_finished = ((xs == self.end_token_idx).sum(dim=1) > 0).sum().item() == batch_size
+            all_finished = (
+                (xs == self.end_token_idx).sum(dim=1) > 0
+            ).sum().item() == batch_size
             if all_finished:
                 break
         logits = torch.stack([seq[0][1] for seq in sequences])
@@ -249,10 +286,9 @@ class TransformerModel(BaseModel):
 
         # encoder-decoder
         tokens_encoding = self.conv_encoder(context_tokens)
-        if mode != 'test':
+        if mode != "test":
             self.longest_label = max(self.longest_label, response.shape[1])
-            logits, preds = self._decode_forced_with_kg(tokens_encoding,
-                                                        response)
+            logits, preds = self._decode_forced_with_kg(tokens_encoding, response)
 
             logits = logits.view(-1, logits.shape[-1])
             response = response.view(-1)

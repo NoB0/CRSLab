@@ -41,23 +41,23 @@ def float_formatter(f: Union[float, int]) -> str:
         return str(f)
     if f >= 1000:
         # numbers > 1000 just round to the nearest integer
-        s = f'{f:.0f}'
+        s = f"{f:.0f}"
     else:
         # otherwise show 4 significant figures, regardless of decimal spot
-        s = f'{f:.4g}'
+        s = f"{f:.4g}"
     # replace leading 0's with blanks for easier reading
     # example:  -0.32 to -.32
-    s = s.replace('-0.', '-.')
-    if s.startswith('0.'):
+    s = s.replace("-0.", "-.")
+    if s.startswith("0."):
         s = s[1:]
     # Add the trailing 0's to always show 4 digits
     # example: .32 to .3200
-    if s[0] == '.' and len(s) < 5:
-        s += '0' * (5 - len(s))
+    if s[0] == "." and len(s) < 5:
+        s += "0" * (5 - len(s))
     return s
 
 
-def round_sigfigs(x: Union[float, 'torch.Tensor'], sigfigs=4) -> float:
+def round_sigfigs(x: Union[float, "torch.Tensor"], sigfigs=4) -> float:
     """
     Round value to specified significant figures.
 
@@ -77,7 +77,7 @@ def round_sigfigs(x: Union[float, 'torch.Tensor'], sigfigs=4) -> float:
             return 0
         return round(x_, -math.floor(math.log10(abs(x_)) - sigfigs + 1))
     except (ValueError, OverflowError) as ex:
-        if x_ in [float('inf'), float('-inf')] or x_ != x_:  # inf or nan
+        if x_ in [float("inf"), float("-inf")] or x_ != x_:  # inf or nan
             return x_
         else:
             raise ex
@@ -96,8 +96,8 @@ def _report_sort_key(report_key: str) -> Tuple[str, str]:
     # filenames.
     fields = report_key.split("/")
     main_key = fields.pop(-1)
-    sub_key = '/'.join(fields)
-    return (sub_key or 'all', main_key)
+    sub_key = "/".join(fields)
+    return (sub_key or "all", main_key)
 
 
 def nice_report(report) -> str:

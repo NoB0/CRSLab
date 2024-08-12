@@ -90,26 +90,26 @@ def download(url, path, fname, redownload=False, num_retries=5):
     download = not os.path.exists(outfile) or redownload
     logger.info(f"Downloading {url} to {outfile}")
     retry = num_retries
-    exp_backoff = [2 ** r for r in reversed(range(retry))]
+    exp_backoff = [2**r for r in reversed(range(retry))]
 
-    pbar = tqdm.tqdm(unit='B', unit_scale=True, desc='Downloading {}'.format(fname))
+    pbar = tqdm.tqdm(unit="B", unit_scale=True, desc="Downloading {}".format(fname))
 
     while download and retry > 0:
         response = None
         try:
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.60',
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.60",
             }
             response = requests.get(url, stream=True, headers=headers)
 
             # negative reply could be 'none' or just missing
             CHUNK_SIZE = 32768
-            total_size = int(response.headers.get('Content-Length', -1))
+            total_size = int(response.headers.get("Content-Length", -1))
             # server returns remaining size if resuming, so adjust total
             pbar.total = total_size
             done = 0
 
-            with open(outfile, 'wb') as f:
+            with open(outfile, "wb") as f:
                 for chunk in response.iter_content(CHUNK_SIZE):
                     if chunk:  # filter out keep-alive new chunks
                         f.write(chunk)
@@ -122,31 +122,29 @@ def download(url, path, fname, redownload=False, num_retries=5):
                         pbar.update(len(chunk))
                 break
         except (
-                requests.exceptions.ConnectionError,
-                requests.exceptions.ReadTimeout,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.ReadTimeout,
         ):
             retry -= 1
             pbar.clear()
             if retry > 0:
-                pl = 'y' if retry == 1 else 'ies'
-                logger.debug(
-                    f'Connection error, retrying. ({retry} retr{pl} left)'
-                )
+                pl = "y" if retry == 1 else "ies"
+                logger.debug(f"Connection error, retrying. ({retry} retr{pl} left)")
                 time.sleep(exp_backoff[retry])
             else:
-                logger.error('Retried too many times, stopped retrying.')
+                logger.error("Retried too many times, stopped retrying.")
         finally:
             if response:
                 response.close()
     if retry <= 0:
-        raise RuntimeError('Connection broken too many times. Stopped retrying.')
+        raise RuntimeError("Connection broken too many times. Stopped retrying.")
 
     if download and retry > 0:
         pbar.update(done - pbar.n)
         if done < total_size:
             raise RuntimeError(
-                f'Received less data than specified in Content-Length header for '
-                f'{url}. There may be a download problem.'
+                f"Received less data than specified in Content-Length header for "
+                f"{url}. There may be a download problem."
             )
 
     pbar.close()
@@ -154,7 +152,7 @@ def download(url, path, fname, redownload=False, num_retries=5):
 
 def _get_confirm_token(response):
     for key, value in response.cookies.items():
-        if key.startswith('download_warning'):
+        if key.startswith("download_warning"):
             return value
     return None
 
@@ -163,19 +161,19 @@ def download_from_google_drive(gd_id, destination):
     """
     Use the requests package to download a file from Google Drive.
     """
-    URL = 'https://docs.google.com/uc?export=download'
+    URL = "https://docs.google.com/uc?export=download"
 
     with requests.Session() as session:
-        response = session.get(URL, params={'id': gd_id}, stream=True)
+        response = session.get(URL, params={"id": gd_id}, stream=True)
         token = _get_confirm_token(response)
 
         if token:
             response.close()
-            params = {'id': gd_id, 'confirm': token}
+            params = {"id": gd_id, "confirm": token}
             response = session.get(URL, params=params, stream=True)
 
         CHUNK_SIZE = 32768
-        with open(destination, 'wb') as f:
+        with open(destination, "wb") as f:
             for chunk in response.iter_content(CHUNK_SIZE):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
@@ -202,7 +200,7 @@ def untar(path, fname, deleteTar=True):
     :param bool deleteTar:
         If true, the archive will be deleted after extraction.
     """
-    logger.debug(f'unpacking {fname}')
+    logger.debug(f"unpacking {fname}")
     fullpath = os.path.join(path, fname)
     shutil.unpack_archive(fullpath, path)
     if deleteTar:
@@ -214,7 +212,7 @@ def make_dir(path):
     Make the directory and any nonexistent parent directories (`mkdir -p`).
     """
     # the current working directory is a fine path
-    if path != '':
+    if path != "":
         os.makedirs(path, exist_ok=True)
 
 
@@ -233,15 +231,15 @@ def check_build(path, version_string=None):
     not built.
     """
     if version_string:
-        fname = os.path.join(path, '.built')
+        fname = os.path.join(path, ".built")
         if not os.path.isfile(fname):
             return False
         else:
-            with open(fname, 'r') as read:
-                text = read.read().split('\n')
+            with open(fname, "r") as read:
+                text = read.read().split("\n")
             return len(text) > 1 and text[1] == version_string
     else:
-        return os.path.isfile(os.path.join(path, '.built'))
+        return os.path.isfile(os.path.join(path, ".built"))
 
 
 def mark_done(path, version_string=None):
@@ -257,15 +255,15 @@ def mark_done(path, version_string=None):
     :param str version_string:
         The version of this dataset.
     """
-    with open(os.path.join(path, '.built'), 'w') as write:
+    with open(os.path.join(path, ".built"), "w") as write:
         write.write(str(datetime.datetime.today()))
         if version_string:
-            write.write('\n' + version_string)
+            write.write("\n" + version_string)
 
 
 def build(dpath, dfile, version=None):
     if not check_build(dpath, version):
-        logger.info('[Building data: ' + dpath + ']')
+        logger.info("[Building data: " + dpath + "]")
         if check_build(dpath):
             remove_dir(dpath)
         make_dir(dpath)

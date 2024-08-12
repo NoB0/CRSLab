@@ -66,9 +66,9 @@ class InspiredDataset(BaseDataset):
 
         """
         resource = resources[tokenize]
-        self.special_token_idx = resource['special_token_idx']
-        self.unk_token_idx = self.special_token_idx['unk']
-        dpath = os.path.join(DATASET_PATH, 'inspired', tokenize)
+        self.special_token_idx = resource["special_token_idx"]
+        self.unk_token_idx = self.special_token_idx["unk"]
+        dpath = os.path.join(DATASET_PATH, "inspired", tokenize)
         super().__init__(opt, dpath, resource, restore, save)
 
     def _load_data(self):
@@ -77,14 +77,14 @@ class InspiredDataset(BaseDataset):
         self._load_other_data()
 
         vocab = {
-            'tok2ind': self.tok2ind,
-            'ind2tok': self.ind2tok,
-            'entity2id': self.entity2id,
-            'id2entity': self.id2entity,
-            'word2id': self.word2id,
-            'vocab_size': len(self.tok2ind),
-            'n_entity': self.n_entity,
-            'n_word': self.n_word,
+            "tok2ind": self.tok2ind,
+            "ind2tok": self.ind2tok,
+            "entity2id": self.entity2id,
+            "id2entity": self.id2entity,
+            "word2id": self.word2id,
+            "vocab_size": len(self.tok2ind),
+            "n_entity": self.n_entity,
+            "n_word": self.n_word,
         }
         vocab.update(self.special_token_idx)
 
@@ -92,20 +92,34 @@ class InspiredDataset(BaseDataset):
 
     def _load_raw_data(self):
         # load train/valid/test data
-        with open(os.path.join(self.dpath, 'train_data.json'), 'r', encoding='utf-8') as f:
+        with open(
+            os.path.join(self.dpath, "train_data.json"), "r", encoding="utf-8"
+        ) as f:
             train_data = json.load(f)
-            logger.debug(f"[Load train data from {os.path.join(self.dpath, 'train_data.json')}]")
-        with open(os.path.join(self.dpath, 'valid_data.json'), 'r', encoding='utf-8') as f:
+            logger.debug(
+                f"[Load train data from {os.path.join(self.dpath, 'train_data.json')}]"
+            )
+        with open(
+            os.path.join(self.dpath, "valid_data.json"), "r", encoding="utf-8"
+        ) as f:
             valid_data = json.load(f)
-            logger.debug(f"[Load valid data from {os.path.join(self.dpath, 'valid_data.json')}]")
-        with open(os.path.join(self.dpath, 'test_data.json'), 'r', encoding='utf-8') as f:
+            logger.debug(
+                f"[Load valid data from {os.path.join(self.dpath, 'valid_data.json')}]"
+            )
+        with open(
+            os.path.join(self.dpath, "test_data.json"), "r", encoding="utf-8"
+        ) as f:
             test_data = json.load(f)
-            logger.debug(f"[Load test data from {os.path.join(self.dpath, 'test_data.json')}]")
+            logger.debug(
+                f"[Load test data from {os.path.join(self.dpath, 'test_data.json')}]"
+            )
 
         return train_data, valid_data, test_data
 
     def _load_vocab(self):
-        with open(os.path.join(self.dpath, 'token2id.json'), 'r', encoding='utf-8') as f:
+        with open(
+            os.path.join(self.dpath, "token2id.json"), "r", encoding="utf-8"
+        ) as f:
             self.tok2ind = json.load(f)
         self.ind2tok = {idx: word for word, idx in self.tok2ind.items()}
 
@@ -115,24 +129,30 @@ class InspiredDataset(BaseDataset):
 
     def _load_other_data(self):
         # dbpedia
-        with open(os.path.join(self.dpath, 'entity2id.json'), encoding='utf-8') as f:
+        with open(os.path.join(self.dpath, "entity2id.json"), encoding="utf-8") as f:
             self.entity2id = json.load(f)  # {entity: entity_id}
         self.id2entity = {idx: entity for entity, idx in self.entity2id.items()}
         self.n_entity = max(self.entity2id.values()) + 1
         # {head_entity_id: [(relation_id, tail_entity_id)]}
-        self.entity_kg = open(os.path.join(self.dpath, 'dbpedia_subkg.txt'), encoding='utf-8')
+        self.entity_kg = open(
+            os.path.join(self.dpath, "dbpedia_subkg.txt"), encoding="utf-8"
+        )
         logger.debug(
-            f"[Load entity dictionary and KG from {os.path.join(self.dpath, 'entity2id.json')} and {os.path.join(self.dpath, 'entity_subkg.txt')}]")
+            f"[Load entity dictionary and KG from {os.path.join(self.dpath, 'entity2id.json')} and {os.path.join(self.dpath, 'entity_subkg.txt')}]"
+        )
 
         # conceptnet
         # {concept: concept_id}
-        with open(os.path.join(self.dpath, 'word2id.json'), 'r', encoding='utf-8') as f:
+        with open(os.path.join(self.dpath, "word2id.json"), "r", encoding="utf-8") as f:
             self.word2id = json.load(f)
         self.n_word = max(self.word2id.values()) + 1
         # {concept \t relation\t concept}
-        self.word_kg = open(os.path.join(self.dpath, 'concept_subkg.txt'), encoding='utf-8')
+        self.word_kg = open(
+            os.path.join(self.dpath, "concept_subkg.txt"), encoding="utf-8"
+        )
         logger.debug(
-            f"[Load word dictionary and KG from {os.path.join(self.dpath, 'word2id.json')} and {os.path.join(self.dpath, 'concept_subkg.txt')}]")
+            f"[Load word dictionary and KG from {os.path.join(self.dpath, 'word2id.json')} and {os.path.join(self.dpath, 'concept_subkg.txt')}]"
+        )
 
     def _data_preprocess(self, train_data, valid_data, test_data):
         processed_train_data = self._raw_data_process(train_data)
@@ -143,10 +163,17 @@ class InspiredDataset(BaseDataset):
         logger.debug("[Finish test data process]")
         processed_side_data = self._side_data_process()
         logger.debug("[Finish side data process]")
-        return processed_train_data, processed_valid_data, processed_test_data, processed_side_data
+        return (
+            processed_train_data,
+            processed_valid_data,
+            processed_test_data,
+            processed_side_data,
+        )
 
     def _raw_data_process(self, raw_data):
-        augmented_convs = [self._convert_to_id(conversation) for conversation in tqdm(raw_data)]
+        augmented_convs = [
+            self._convert_to_id(conversation) for conversation in tqdm(raw_data)
+        ]
         augmented_conv_dicts = []
         for conv in tqdm(augmented_convs):
             augmented_conv_dicts.extend(self._augment_and_add(conv))
@@ -155,11 +182,23 @@ class InspiredDataset(BaseDataset):
     def _convert_to_id(self, conversation):
         augmented_convs = []
         last_role = None
-        for utt in conversation['dialog']:
-            text_token_ids = [self.tok2ind.get(word, self.unk_token_idx) for word in utt["text"]]
-            movie_ids = [self.entity2id[movie] for movie in utt['movies'] if movie in self.entity2id]
-            entity_ids = [self.entity2id[entity] for entity in utt['entity'] if entity in self.entity2id]
-            word_ids = [self.word2id[word] for word in utt['word'] if word in self.word2id]
+        for utt in conversation["dialog"]:
+            text_token_ids = [
+                self.tok2ind.get(word, self.unk_token_idx) for word in utt["text"]
+            ]
+            movie_ids = [
+                self.entity2id[movie]
+                for movie in utt["movies"]
+                if movie in self.entity2id
+            ]
+            entity_ids = [
+                self.entity2id[entity]
+                for entity in utt["entity"]
+                if entity in self.entity2id
+            ]
+            word_ids = [
+                self.word2id[word] for word in utt["word"] if word in self.word2id
+            ]
 
             if utt["role"] == last_role:
                 augmented_convs[-1]["text"] += text_token_ids
@@ -167,13 +206,15 @@ class InspiredDataset(BaseDataset):
                 augmented_convs[-1]["entity"] += entity_ids
                 augmented_convs[-1]["word"] += word_ids
             else:
-                augmented_convs.append({
-                    "role": utt["role"],
-                    "text": text_token_ids,
-                    "entity": entity_ids,
-                    "movie": movie_ids,
-                    "word": word_ids
-                })
+                augmented_convs.append(
+                    {
+                        "role": utt["role"],
+                        "text": text_token_ids,
+                        "entity": entity_ids,
+                        "movie": movie_ids,
+                        "word": word_ids,
+                    }
+                )
             last_role = utt["role"]
 
         return augmented_convs
@@ -183,15 +224,20 @@ class InspiredDataset(BaseDataset):
         context_tokens, context_entities, context_words, context_items = [], [], [], []
         entity_set, word_set = set(), set()
         for i, conv in enumerate(raw_conv_dict):
-            text_tokens, entities, movies, words = conv["text"], conv["entity"], conv["movie"], conv["word"]
+            text_tokens, entities, movies, words = (
+                conv["text"],
+                conv["entity"],
+                conv["movie"],
+                conv["word"],
+            )
             if len(context_tokens) > 0:
                 conv_dict = {
-                    'role': conv['role'],
+                    "role": conv["role"],
                     "context_tokens": copy(context_tokens),
                     "response": text_tokens,
                     "context_entities": copy(context_entities),
                     "context_words": copy(context_words),
-                    'context_items': copy(context_items),
+                    "context_items": copy(context_items),
                     "items": movies,
                 }
                 augmented_conv_dicts.append(conv_dict)
@@ -214,9 +260,11 @@ class InspiredDataset(BaseDataset):
         logger.debug("[Finish entity KG process]")
         processed_word_kg = self._word_kg_process()
         logger.debug("[Finish word KG process]")
-        with open(os.path.join(self.dpath, 'movie_ids.json'), 'r', encoding='utf-8') as f:
+        with open(
+            os.path.join(self.dpath, "movie_ids.json"), "r", encoding="utf-8"
+        ) as f:
             movie_entity_ids = json.load(f)
-        logger.debug('[Load movie entity ids]')
+        logger.debug("[Load movie entity ids]")
 
         side_data = {
             "entity_kg": processed_entity_kg,
@@ -228,15 +276,15 @@ class InspiredDataset(BaseDataset):
     def _entity_kg_process(self):
         edge_list = []  # [(entity, entity, relation)]
         for line in self.entity_kg:
-            triple = line.strip().split('\t')
+            triple = line.strip().split("\t")
             e0 = self.entity2id[triple[0]]
             e1 = self.entity2id[triple[2]]
             r = triple[1]
             edge_list.append((e0, e1, r))
             edge_list.append((e1, e0, r))
-            edge_list.append((e0, e0, 'SELF_LOOP'))
+            edge_list.append((e0, e0, "SELF_LOOP"))
             if e1 != e0:
-                edge_list.append((e1, e1, 'SELF_LOOP'))
+                edge_list.append((e1, e1, "SELF_LOOP"))
 
         relation2id, edges, entities = dict(), set(), set()
         for h, t, r in edge_list:
@@ -247,16 +295,16 @@ class InspiredDataset(BaseDataset):
             entities.add(self.id2entity[t])
 
         return {
-            'edge': list(edges),
-            'n_relation': len(relation2id),
-            'entity': list(entities)
+            "edge": list(edges),
+            "n_relation": len(relation2id),
+            "entity": list(entities),
         }
 
     def _word_kg_process(self):
         edges = set()  # {(entity, entity)}
         entities = set()
         for line in self.word_kg:
-            triple = line.strip().split('\t')
+            triple = line.strip().split("\t")
             entities.add(triple[0])
             entities.add(triple[2])
             e0 = self.word2id[triple[0]]
@@ -264,7 +312,4 @@ class InspiredDataset(BaseDataset):
             edges.add((e0, e1))
             edges.add((e1, e0))
         # edge_set = [[co[0] for co in list(edges)], [co[1] for co in list(edges)]]
-        return {
-            'edge': list(edges),
-            'entity': list(entities)
-        }
+        return {"edge": list(edges), "entity": list(entities)}

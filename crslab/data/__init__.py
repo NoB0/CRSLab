@@ -24,49 +24,49 @@ from crslab.data.dataloader import *
 from crslab.data.dataset import *
 
 dataset_register_table = {
-    'ReDial': ReDialDataset,
-    'TGReDial': TGReDialDataset,
-    'GoRecDial': GoRecDialDataset,
-    'OpenDialKG': OpenDialKGDataset,
-    'Inspired': InspiredDataset,
-    'DuRecDial': DuRecDialDataset
+    "ReDial": ReDialDataset,
+    "TGReDial": TGReDialDataset,
+    "GoRecDial": GoRecDialDataset,
+    "OpenDialKG": OpenDialKGDataset,
+    "Inspired": InspiredDataset,
+    "DuRecDial": DuRecDialDataset,
 }
 
 dataset_language_map = {
-    'ReDial': 'en',
-    'TGReDial': 'zh',
-    'GoRecDial': 'en',
-    'OpenDialKG': 'en',
-    'Inspired': 'en',
-    'DuRecDial': 'zh'
+    "ReDial": "en",
+    "TGReDial": "zh",
+    "GoRecDial": "en",
+    "OpenDialKG": "en",
+    "Inspired": "en",
+    "DuRecDial": "zh",
 }
 
 dataloader_register_table = {
-    'KGSF': KGSFDataLoader,
-    'KBRD': KBRDDataLoader,
-    'TGReDial': TGReDialDataLoader,
-    'TGRec': TGReDialDataLoader,
-    'TGConv': TGReDialDataLoader,
-    'TGPolicy': TGReDialDataLoader,
-    'TGRec_TGConv': TGReDialDataLoader,
-    'TGRec_TGConv_TGPolicy': TGReDialDataLoader,
-    'ReDialRec': ReDialDataLoader,
-    'ReDialConv': ReDialDataLoader,
-    'ReDialRec_ReDialConv': ReDialDataLoader,
-    'InspiredRec_InspiredConv': InspiredDataLoader,
-    'BERT': TGReDialDataLoader,
-    'SASREC': TGReDialDataLoader,
-    'TextCNN': TGReDialDataLoader,
-    'GRU4REC': TGReDialDataLoader,
-    'Popularity': TGReDialDataLoader,
-    'Transformer': KGSFDataLoader,
-    'GPT2': TGReDialDataLoader,
-    'ConvBERT': TGReDialDataLoader,
-    'TopicBERT': TGReDialDataLoader,
-    'ProfileBERT': TGReDialDataLoader,
-    'MGCG': TGReDialDataLoader,
-    'PMI': TGReDialDataLoader,
-    'NTRD': NTRDDataLoader
+    "KGSF": KGSFDataLoader,
+    "KBRD": KBRDDataLoader,
+    "TGReDial": TGReDialDataLoader,
+    "TGRec": TGReDialDataLoader,
+    "TGConv": TGReDialDataLoader,
+    "TGPolicy": TGReDialDataLoader,
+    "TGRec_TGConv": TGReDialDataLoader,
+    "TGRec_TGConv_TGPolicy": TGReDialDataLoader,
+    "ReDialRec": ReDialDataLoader,
+    "ReDialConv": ReDialDataLoader,
+    "ReDialRec_ReDialConv": ReDialDataLoader,
+    "InspiredRec_InspiredConv": InspiredDataLoader,
+    "BERT": TGReDialDataLoader,
+    "SASREC": TGReDialDataLoader,
+    "TextCNN": TGReDialDataLoader,
+    "GRU4REC": TGReDialDataLoader,
+    "Popularity": TGReDialDataLoader,
+    "Transformer": KGSFDataLoader,
+    "GPT2": TGReDialDataLoader,
+    "ConvBERT": TGReDialDataLoader,
+    "TopicBERT": TGReDialDataLoader,
+    "ProfileBERT": TGReDialDataLoader,
+    "MGCG": TGReDialDataLoader,
+    "PMI": TGReDialDataLoader,
+    "NTRD": NTRDDataLoader,
 }
 
 
@@ -83,11 +83,13 @@ def get_dataset(opt, tokenize, restore, save) -> BaseDataset:
         processed dataset
 
     """
-    dataset = opt['dataset']
+    dataset = opt["dataset"]
     if dataset in dataset_register_table:
         return dataset_register_table[dataset](opt, tokenize, restore, save)
     else:
-        raise NotImplementedError(f'The dataloader [{dataset}] has not been implemented')
+        raise NotImplementedError(
+            f"The dataloader [{dataset}] has not been implemented"
+        )
 
 
 def get_dataloader(opt, dataset, vocab) -> BaseDataLoader:
@@ -102,8 +104,10 @@ def get_dataloader(opt, dataset, vocab) -> BaseDataLoader:
         dataloader
 
     """
-    model_name = opt['model_name']
+    model_name = opt["model_name"]
     if model_name in dataloader_register_table:
         return dataloader_register_table[model_name](opt, dataset, vocab)
     else:
-        raise NotImplementedError(f'The dataloader [{model_name}] has not been implemented')
+        raise NotImplementedError(
+            f"The dataloader [{model_name}] has not been implemented"
+        )

@@ -38,7 +38,7 @@ def compute_grad_norm(parameters, norm_type=2.0):
     return total_norm ** (1.0 / norm_type)
 
 
-def ind2txt(inds, ind2tok, end_token_idx=None, unk_token='unk'):
+def ind2txt(inds, ind2tok, end_token_idx=None, unk_token="unk"):
     sentence = []
     for ind in inds:
         if isinstance(ind, torch.Tensor):
@@ -46,9 +46,17 @@ def ind2txt(inds, ind2tok, end_token_idx=None, unk_token='unk'):
         if end_token_idx and ind == end_token_idx:
             break
         sentence.append(ind2tok.get(ind, unk_token))
-    return ' '.join(sentence)
+    return " ".join(sentence)
 
-def ind2txt_with_slots(inds,slots,ind2tok, end_token_idx=None, unk_token='unk',slot_token='[ITEM]'):
+
+def ind2txt_with_slots(
+    inds,
+    slots,
+    ind2tok,
+    end_token_idx=None,
+    unk_token="unk",
+    slot_token="[ITEM]",
+):
     sentence = []
     for ind in inds:
         if isinstance(ind, torch.Tensor):
@@ -58,9 +66,10 @@ def ind2txt_with_slots(inds,slots,ind2tok, end_token_idx=None, unk_token='unk',s
         token = ind2tok.get(ind, unk_token)
         if token == slot_token:
             token = slots[0]
-            slots = slots[1:] 
+            slots = slots[1:]
         sentence.append(token)
-    return ' '.join(sentence)
+    return " ".join(sentence)
 
-def ind2slot(inds,ind2slot):
-    return [ ind2slot[ind] for ind in inds]
+
+def ind2slot(inds, ind2slot):
+    return [ind2slot[ind] for ind in inds]

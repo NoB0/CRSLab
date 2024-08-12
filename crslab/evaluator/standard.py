@@ -26,7 +26,7 @@ from ..download import build
 
 class StandardEvaluator(BaseEvaluator):
     """The evaluator for all kind of model(recommender, conversation, policy)
-    
+
     Args:
         rec_metrics: the metrics to evaluate recommender model, including hit@K, ndcg@K and mrr@K
         dist_set: the set to record dist n-gram
@@ -49,17 +49,23 @@ class StandardEvaluator(BaseEvaluator):
         # tensorboard
         self.tensorboard = tensorboard
         if self.tensorboard:
-            self.writer = SummaryWriter(log_dir='runs/' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime()))
-            self.reports_name = ['Recommendation Metrics', 'Generation Metrics', 'Optimization Metrics']
+            self.writer = SummaryWriter(
+                log_dir="runs/" + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+            )
+            self.reports_name = [
+                "Recommendation Metrics",
+                "Generation Metrics",
+                "Optimization Metrics",
+            ]
 
     def _load_embedding(self, language):
         resource = resources[language]
         dpath = os.path.join(EMBEDDING_PATH, language)
-        build(dpath, resource['file'], resource['version'])
+        build(dpath, resource["file"], resource["version"])
 
-        model_file = os.path.join(dpath, f'cc.{language}.300.bin')
+        model_file = os.path.join(dpath, f"cc.{language}.300.bin")
         self.ft = fasttext.load_model(model_file)
-        logger.info(f'[Load {model_file} for embedding metric')
+        logger.info(f"[Load {model_file} for embedding metric")
 
     def _get_sent_embedding(self, sent):
         return [self.ft[token] for token in sent.split()]
@@ -83,19 +89,27 @@ class StandardEvaluator(BaseEvaluator):
 
             hyp_emb = self._get_sent_embedding(hyp)
             ref_embs = [self._get_sent_embedding(ref) for ref in refs]
-            self.gen_metrics.add('greedy', GreedyMatch.compute(hyp_emb, ref_embs))
-            self.gen_metrics.add('average', EmbeddingAverage.compute(hyp_emb, ref_embs))
-            self.gen_metrics.add('extreme', VectorExtrema.compute(hyp_emb, ref_embs))
+            self.gen_metrics.add("greedy", GreedyMatch.compute(hyp_emb, ref_embs))
+            self.gen_metrics.add("average", EmbeddingAverage.compute(hyp_emb, ref_embs))
+            self.gen_metrics.add("extreme", VectorExtrema.compute(hyp_emb, ref_embs))
 
-    def report(self, epoch=-1, mode='test'):
+    def report(self, epoch=-1, mode="test"):
         for k, v in self.dist_set.items():
             self.gen_metrics.add(k, AverageMetric(len(v) / self.dist_cnt))
-        reports = [self.rec_metrics.report(), self.gen_metrics.report(), self.optim_metrics.report()]
-        if self.tensorboard and mode != 'test':
+        reports = [
+            self.rec_metrics.report(),
+            self.gen_metrics.report(),
+            self.optim_metrics.report(),
+        ]
+        if self.tensorboard and mode != "test":
             for idx, task_report in enumerate(reports):
                 for each_metric, value in task_report.items():
-                    self.writer.add_scalars(f'{self.reports_name[idx]}/{each_metric}', {mode: value.value()}, epoch)
-        logger.info('\n' + nice_report(aggregate_unnamed_reports(reports)))
+                    self.writer.add_scalars(
+                        f"{self.reports_name[idx]}/{each_metric}",
+                        {mode: value.value()},
+                        epoch,
+                    )
+        logger.info("\n" + nice_report(aggregate_unnamed_reports(reports)))
 
     def reset_metrics(self):
         # rec

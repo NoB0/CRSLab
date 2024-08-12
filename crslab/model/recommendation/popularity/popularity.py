@@ -38,22 +38,24 @@ class PopularityModel(BaseModel):
             side_data (dict): A dictionary record the side data.
 
         """
-        self.item_size = vocab['n_entity']
+        self.item_size = vocab["n_entity"]
         super(PopularityModel, self).__init__(opt, device)
 
     def build_model(self):
         self.item_frequency = defaultdict(int)
-        logger.debug('[Finish build rec layer]')
+        logger.debug("[Finish build rec layer]")
 
     def forward(self, batch, mode):
         context, mask, input_ids, target_pos, input_mask, sample_negs, y = batch
-        if mode == 'train':
+        if mode == "train":
             for ids in input_ids:
                 for id in ids:
                     self.item_frequency[id.item()] += 1
 
         bs = input_ids.shape[0]
-        rec_score = [self.item_frequency.get(item_id, 0) for item_id in range(self.item_size)]
+        rec_score = [
+            self.item_frequency.get(item_id, 0) for item_id in range(self.item_size)
+        ]
         rec_scores = torch.tensor([rec_score] * bs, dtype=torch.long)
         loss = torch.zeros(1, requires_grad=True)
         return loss, rec_scores

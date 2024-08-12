@@ -28,7 +28,7 @@ from crslab.model.base import BaseModel
 
 class TextCNNModel(BaseModel):
     """
-        
+
     Attributes:
         movie_num: A integer indicating the number of items.
         num_filters: A string indicating the number of filter in CNN.
@@ -48,11 +48,11 @@ class TextCNNModel(BaseModel):
             side_data (dict): A dictionary record the side data.
 
         """
-        self.movie_num = vocab['n_entity']
-        self.num_filters = opt['num_filters']
-        self.embed = opt['embed']
-        self.filter_sizes = eval(opt['filter_sizes'])
-        self.dropout = opt['dropout']
+        self.movie_num = vocab["n_entity"]
+        self.num_filters = opt["num_filters"]
+        self.embed = opt["embed"]
+        self.filter_sizes = eval(opt["filter_sizes"])
+        self.dropout = opt["dropout"]
         super(TextCNNModel, self).__init__(opt, device)
 
     def conv_and_pool(self, x, conv):
@@ -64,14 +64,15 @@ class TextCNNModel(BaseModel):
         self.embedding = nn.Embedding(self.movie_num, self.embed)
 
         self.convs = nn.ModuleList(
-            [nn.Conv2d(1, self.num_filters, (k, self.embed)) for k in self.filter_sizes])
+            [nn.Conv2d(1, self.num_filters, (k, self.embed)) for k in self.filter_sizes]
+        )
         self.dropout = nn.Dropout(self.dropout)
         self.fc = nn.Linear(self.num_filters * len(self.filter_sizes), self.movie_num)
 
         # this loss may conduct to some weakness
         self.rec_loss = nn.CrossEntropyLoss()
 
-        logger.debug('[Finish build rec layer]')
+        logger.debug("[Finish build rec layer]")
 
     def forward(self, batch, mode):
         context, mask, input_ids, target_pos, input_mask, sample_negs, y = batch

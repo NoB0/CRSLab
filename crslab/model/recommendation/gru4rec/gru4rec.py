@@ -51,25 +51,27 @@ class GRU4RECModel(BaseModel):
             side_data (dict): A dictionary record the side data.
 
         """
-        self.item_size = vocab['n_entity'] + 1
-        self.hidden_size = opt['gru_hidden_size']
-        self.num_layers = opt['num_layers']
-        self.dropout_hidden = opt['dropout_hidden']
-        self.dropout_input = opt['dropout_input']
-        self.embedding_dim = opt['embedding_dim']
-        self.batch_size = opt['batch_size']
+        self.item_size = vocab["n_entity"] + 1
+        self.hidden_size = opt["gru_hidden_size"]
+        self.num_layers = opt["num_layers"]
+        self.dropout_hidden = opt["dropout_hidden"]
+        self.dropout_input = opt["dropout_input"]
+        self.embedding_dim = opt["embedding_dim"]
+        self.batch_size = opt["batch_size"]
 
         super(GRU4RECModel, self).__init__(opt, device)
 
     def build_model(self):
         self.item_embeddings = nn.Embedding(self.item_size, self.embedding_dim)
-        self.gru = nn.GRU(self.embedding_dim,
-                          self.hidden_size,
-                          self.num_layers,
-                          dropout=self.dropout_hidden,
-                          batch_first=True)
+        self.gru = nn.GRU(
+            self.embedding_dim,
+            self.hidden_size,
+            self.num_layers,
+            dropout=self.dropout_hidden,
+            batch_first=True,
+        )
 
-        logger.debug('[Finish build rec layer]')
+        logger.debug("[Finish build rec layer]")
 
     def reconstruct_input(self, input_ids):
         """
@@ -112,8 +114,8 @@ class GRU4RECModel(BaseModel):
         # [batch*seq_len]
         istarget = (pos_ids > 0).view(pos_ids.size(0) * pos_ids.size(1)).float()
         loss = torch.sum(
-            - torch.log(torch.sigmoid(pos_logits) + 1e-24) * istarget -
-            torch.log(1 - torch.sigmoid(neg_logits) + 1e-24) * istarget
+            -torch.log(torch.sigmoid(pos_logits) + 1e-24) * istarget
+            - torch.log(1 - torch.sigmoid(neg_logits) + 1e-24) * istarget
         ) / torch.sum(istarget)
 
         return loss
@@ -132,8 +134,8 @@ class GRU4RECModel(BaseModel):
         embedded = self.item_embeddings(input_ids)  # (batch, seq_len, hidden_size)
         input_len = [len_ if len_ > 0 else 1 for len_ in input_len]
         embedded = pack_padded_sequence(
-            embedded, input_len, enforce_sorted=False,
-            batch_first=True)  # (num_layers , batch, hidden_size)
+            embedded, input_len, enforce_sorted=False, batch_first=True
+        )  # (num_layers , batch, hidden_size)
 
         output, hidden = self.gru(embedded)
         output, output_len = pad_packed_sequence(output, batch_first=True)
@@ -146,7 +148,8 @@ class GRU4RECModel(BaseModel):
         rec_scores = rec_scores.squeeze(1)
 
         max_out_len = max([len_ for len_ in output_len])
-        rec_loss = self.cross_entropy(logit, target_pos[:, :max_out_len],
-                                      sample_negs[:, :max_out_len], input_mask)
+        rec_loss = self.cross_entropy(
+            logit, target_pos[:, :max_out_len], sample_negs[:, :max_out_len], input_mask
+        )
 
         return rec_loss, rec_scores

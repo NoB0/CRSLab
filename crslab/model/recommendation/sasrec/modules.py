@@ -16,9 +16,19 @@ import torch.nn.functional as F
 
 
 class SASRec(nn.Module):
-    def __init__(self, hidden_dropout_prob, device, initializer_range,
-                 hidden_size, max_seq_length, item_size, num_attention_heads,
-                 attention_probs_dropout_prob, hidden_act, num_hidden_layers):
+    def __init__(
+        self,
+        hidden_dropout_prob,
+        device,
+        initializer_range,
+        hidden_size,
+        max_seq_length,
+        item_size,
+        num_attention_heads,
+        attention_probs_dropout_prob,
+        hidden_act,
+        num_hidden_layers,
+    ):
         super(SASRec, self).__init__()
         self.hidden_dropout_prob = hidden_dropout_prob
         self.device = device
@@ -35,13 +45,20 @@ class SASRec(nn.Module):
         self.init_model()
 
     def build_model(self):
-        self.embeddings = Embeddings(self.item_size, self.hidden_size,
-                                     self.max_seq_length,
-                                     self.hidden_dropout_prob)
-        self.encoder = Encoder(self.num_hidden_layers, self.hidden_size,
-                               self.num_attention_heads,
-                               self.hidden_dropout_prob, self.hidden_act,
-                               self.attention_probs_dropout_prob)
+        self.embeddings = Embeddings(
+            self.item_size,
+            self.hidden_size,
+            self.max_seq_length,
+            self.hidden_dropout_prob,
+        )
+        self.encoder = Encoder(
+            self.num_hidden_layers,
+            self.hidden_size,
+            self.num_attention_heads,
+            self.hidden_dropout_prob,
+            self.hidden_act,
+            self.attention_probs_dropout_prob,
+        )
 
         self.act = nn.Tanh()
         self.dropout = nn.Dropout(p=self.hidden_dropout_prob)
@@ -49,10 +66,7 @@ class SASRec(nn.Module):
     def init_model(self):
         self.apply(self.init_sas_weights)
 
-    def forward(self,
-                input_ids,
-                attention_mask=None,
-                output_all_encoded_layers=True):
+    def forward(self, input_ids, attention_mask=None, output_all_encoded_layers=True):
         if attention_mask is None:
             attention_mask = torch.ones_like(input_ids)  # (bs, seq_len)
         # We create a 3D attention mask from a 2D tensor mask.
@@ -61,12 +75,12 @@ class SASRec(nn.Module):
         # this attention mask is more simple than the triangular masking of causal attention
         # used in OpenAI GPT, we just need to prepare the broadcast dimension here.
         extended_attention_mask = attention_mask.unsqueeze(1).unsqueeze(
-            2)  # torch.int64, (bs, 1, 1, seq_len)
+            2
+        )  # torch.int64, (bs, 1, 1, seq_len)
         # 添加mask 只关注前几个物品进行推荐
         max_len = attention_mask.size(-1)
         attn_shape = (1, max_len, max_len)
-        subsequent_mask = torch.triu(torch.ones(attn_shape),
-                                     diagonal=1)  # torch.uint8
+        subsequent_mask = torch.triu(torch.ones(attn_shape), diagonal=1)  # torch.uint8
         subsequent_mask = (subsequent_mask == 0).unsqueeze(1)
         subsequent_mask = subsequent_mask.long().to(self.device)
         extended_attention_mask = extended_attention_mask * subsequent_mask
@@ -84,14 +98,14 @@ class SASRec(nn.Module):
         encoded_layers = self.encoder(
             embedding,
             extended_attention_mask,
-            output_all_encoded_layers=output_all_encoded_layers)
+            output_all_encoded_layers=output_all_encoded_layers,
+        )
         # [B L H]
         sequence_output = encoded_layers[-1]
         return sequence_output
 
     def init_sas_weights(self, module):
-        """ Initialize the weights.
-        """
+        """Initialize the weights."""
         if isinstance(module, (nn.Linear, nn.Embedding)):
             # Slightly different from the TF version which uses truncated_normal for initialization
             # cf https://github.com/pytorch/pytorch/pull/5617
@@ -117,7 +131,7 @@ class SASRec(nn.Module):
 
         self.load_state_dict(load_states)
 
-    def compute_loss(self, y_pred, y, subset='test'):
+    def compute_loss(self, y_pred, y, subset="test"):
         pass
 
     def cross_entropy(self, seq_out, pos_ids, neg_ids):
@@ -138,10 +152,10 @@ class SASRec(nn.Module):
 
         # [batch*seq_len]
         istarget = (pos_ids > 0).view(-1).float()
-        loss = torch.sum(-torch.log(torch.sigmoid(pos_logits) + 1e-24) *
-                         istarget -
-                         torch.log(1 - torch.sigmoid(neg_logits) + 1e-24) *
-                         istarget) / torch.sum(istarget)
+        loss = torch.sum(
+            -torch.log(torch.sigmoid(pos_logits) + 1e-24) * istarget
+            - torch.log(1 - torch.sigmoid(neg_logits) + 1e-24) * istarget
+        ) / torch.sum(istarget)
 
         return loss
 
@@ -184,8 +198,7 @@ class LayerNorm(nn.Module):
 class Embeddings(nn.Module):
     """Construct the embeddings from item, position, attribute."""
 
-    def __init__(self, item_size, hidden_size, max_seq_length,
-                 hidden_dropout_prob):
+    def __init__(self, item_size, hidden_size, max_seq_length, hidden_dropout_prob):
         super(Embeddings, self).__init__()
 
         self.item_embeddings = nn.Embedding(item_size, hidden_size)
@@ -197,9 +210,9 @@ class Embeddings(nn.Module):
     def forward(self, input_ids):
         seq_length = input_ids.size(1)
 
-        position_ids = torch.arange(seq_length,
-                                    dtype=torch.long,
-                                    device=input_ids.device)
+        position_ids = torch.arange(
+            seq_length, dtype=torch.long, device=input_ids.device
+        )
         position_ids = position_ids.unsqueeze(0).expand_as(input_ids)
         items_embeddings = self.item_embeddings(input_ids)
         position_embeddings = self.position_embeddings(position_ids)
@@ -212,13 +225,19 @@ class Embeddings(nn.Module):
 
 
 class SelfAttention(nn.Module):
-    def __init__(self, hidden_size, num_attention_heads, hidden_dropout_prob,
-                 attention_probs_dropout_prob):
+    def __init__(
+        self,
+        hidden_size,
+        num_attention_heads,
+        hidden_dropout_prob,
+        attention_probs_dropout_prob,
+    ):
         super(SelfAttention, self).__init__()
         if hidden_size % num_attention_heads != 0:
             raise ValueError(
                 "The hidden size (%d) is not a multiple of the number of attention "
-                "heads (%d)" % (hidden_size, num_attention_heads))
+                "heads (%d)" % (hidden_size, num_attention_heads)
+            )
         self.num_attention_heads = num_attention_heads
         self.attention_head_size = int(hidden_size / num_attention_heads)
         self.all_head_size = self.num_attention_heads * self.attention_head_size
@@ -242,8 +261,10 @@ class SelfAttention(nn.Module):
             x.permute(0, 2, 1, 3), (bs, num_heads, seq_len, head_size)
 
         """
-        new_x_shape = x.size()[:-1] + (self.num_attention_heads,
-                                       self.attention_head_size)
+        new_x_shape = x.size()[:-1] + (
+            self.num_attention_heads,
+            self.attention_head_size,
+        )
         x = x.view(*new_x_shape)
 
         return x.permute(0, 2, 1, 3)
@@ -257,11 +278,11 @@ class SelfAttention(nn.Module):
         key_layer = self.transpose_for_scores(mixed_key_layer)
         value_layer = self.transpose_for_scores(mixed_value_layer)
         # Take the dot product between "query" and "key" to get the raw attention scores.
-        attention_scores = torch.matmul(query_layer, key_layer.transpose(
-            -1, -2))  # (bs, num_heads, seq_len, seq_len)
+        attention_scores = torch.matmul(
+            query_layer, key_layer.transpose(-1, -2)
+        )  # (bs, num_heads, seq_len, seq_len)
 
-        attention_scores = attention_scores / math.sqrt(
-            self.attention_head_size)
+        attention_scores = attention_scores / math.sqrt(self.attention_head_size)
         # Apply the attention mask is (precomputed for all layers in BertModel forward() function)
 
         # [batch_size heads seq_len seq_len] scores
@@ -277,8 +298,7 @@ class SelfAttention(nn.Module):
 
         context_layer = torch.matmul(attention_probs, value_layer)
         context_layer = context_layer.permute(0, 2, 1, 3).contiguous()
-        new_context_layer_shape = context_layer.size()[:-2] + (
-            self.all_head_size,)
+        new_context_layer_shape = context_layer.size()[:-2] + (self.all_head_size,)
         context_layer = context_layer.view(*new_context_layer_shape)
 
         hidden_states = self.dense(context_layer)
@@ -302,7 +322,6 @@ class Intermediate(nn.Module):
         self.dropout = nn.Dropout(hidden_dropout_prob)
 
     def forward(self, input_tensor):
-
         hidden_states = self.dense_1(input_tensor)
         hidden_states = self.intermediate_act_fn(hidden_states)
 
@@ -313,12 +332,21 @@ class Intermediate(nn.Module):
 
 
 class Layer(nn.Module):
-    def __init__(self, hidden_size, num_attention_heads, hidden_dropout_prob,
-                 hidden_act, attention_probs_dropout_prob):
+    def __init__(
+        self,
+        hidden_size,
+        num_attention_heads,
+        hidden_dropout_prob,
+        hidden_act,
+        attention_probs_dropout_prob,
+    ):
         super(Layer, self).__init__()
-        self.attention = SelfAttention(hidden_size, num_attention_heads,
-                                       hidden_dropout_prob,
-                                       attention_probs_dropout_prob)
+        self.attention = SelfAttention(
+            hidden_size,
+            num_attention_heads,
+            hidden_dropout_prob,
+            attention_probs_dropout_prob,
+        )
         self.intermediate = Intermediate(hidden_size, hidden_act, hidden_dropout_prob)
 
     def forward(self, hidden_states, attention_mask):
@@ -328,19 +356,28 @@ class Layer(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, num_hidden_layers, hidden_size, num_attention_heads,
-                 hidden_dropout_prob, hidden_act,
-                 attention_probs_dropout_prob):
+    def __init__(
+        self,
+        num_hidden_layers,
+        hidden_size,
+        num_attention_heads,
+        hidden_dropout_prob,
+        hidden_act,
+        attention_probs_dropout_prob,
+    ):
         super(Encoder, self).__init__()
-        layer = Layer(hidden_size, num_attention_heads, hidden_dropout_prob,
-                      hidden_act, attention_probs_dropout_prob)
+        layer = Layer(
+            hidden_size,
+            num_attention_heads,
+            hidden_dropout_prob,
+            hidden_act,
+            attention_probs_dropout_prob,
+        )
         self.layer = nn.ModuleList(
-            [copy.deepcopy(layer) for _ in range(num_hidden_layers)])
+            [copy.deepcopy(layer) for _ in range(num_hidden_layers)]
+        )
 
-    def forward(self,
-                hidden_states,
-                attention_mask,
-                output_all_encoded_layers=True):
+    def forward(self, hidden_states, attention_mask, output_all_encoded_layers=True):
         all_encoder_layers = []
         for layer_module in self.layer:
             hidden_states = layer_module(hidden_states, attention_mask)

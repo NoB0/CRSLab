@@ -21,10 +21,10 @@ from typing import List, Union, Optional
 
 
 def padded_tensor(
-        items: List[Union[List[int], torch.LongTensor]],
-        pad_idx: int = 0,
-        pad_tail: bool = True,
-        max_len: Optional[int] = None,
+    items: List[Union[List[int], torch.LongTensor]],
+    pad_idx: int = 0,
+    pad_tail: bool = True,
+    max_len: Optional[int] = None,
 ) -> torch.LongTensor:
     """Create a padded matrix from an uneven list of lists.
 
@@ -72,7 +72,7 @@ def padded_tensor(
             output[i, :length] = item
         else:
             # place at end
-            output[i, t - length:] = item
+            output[i, t - length :] = item
 
     return output
 
@@ -97,7 +97,9 @@ def get_onehot(data_list, categories) -> torch.Tensor:
     return torch.stack(onehot_labels, dim=0)
 
 
-def add_start_end_token_idx(vec: list, start_token_idx: int = None, end_token_idx: int = None):
+def add_start_end_token_idx(
+    vec: list, start_token_idx: int = None, end_token_idx: int = None
+):
     """Can choose to add start token in the beginning and end token in the end.
 
     Args:
@@ -141,7 +143,9 @@ def truncate(vec, max_length, truncate_tail=True):
         return vec[-max_length:]
 
 
-def merge_utt(conversation, split_token_idx=None, keep_split_in_tail=False, final_token_idx=None):
+def merge_utt(
+    conversation, split_token_idx=None, keep_split_in_tail=False, final_token_idx=None
+):
     """merge utterances in one conversation.
 
     Args:
@@ -166,8 +170,9 @@ def merge_utt(conversation, split_token_idx=None, keep_split_in_tail=False, fina
         merged_conv.append(final_token_idx)
     return merged_conv
 
-def merge_utt_replace(conversation,detect_token=None,replace_token=None,method="in"):
-    if method == 'in': 
+
+def merge_utt_replace(conversation, detect_token=None, replace_token=None, method="in"):
+    if method == "in":
         replaced_conv = []
         for utt in conversation:
             for token in utt:
@@ -177,4 +182,8 @@ def merge_utt_replace(conversation,detect_token=None,replace_token=None,method="
                     replaced_conv.append(token)
         return replaced_conv
     else:
-        return [token.replace(detect_token,replace_token) for utt in conversation for token in utt]
+        return [
+            token.replace(detect_token, replace_token)
+            for utt in conversation
+            for token in utt
+        ]

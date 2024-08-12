@@ -2,9 +2,13 @@ import numpy as np
 import torch
 from torch import nn as nn
 
-from crslab.model.utils.modules.transformer import MultiHeadAttention, TransformerFFN, _create_selfattn_mask, \
-    _normalize, \
-    create_position_codes
+from crslab.model.utils.modules.transformer import (
+    MultiHeadAttention,
+    TransformerFFN,
+    _create_selfattn_mask,
+    _normalize,
+    create_position_codes,
+)
 
 
 class GateLayer(nn.Module):
@@ -22,13 +26,13 @@ class GateLayer(nn.Module):
 
 class TransformerDecoderLayerKG(nn.Module):
     def __init__(
-            self,
-            n_heads,
-            embedding_size,
-            ffn_size,
-            attention_dropout=0.0,
-            relu_dropout=0.0,
-            dropout=0.0,
+        self,
+        n_heads,
+        embedding_size,
+        ffn_size,
+        attention_dropout=0.0,
+        relu_dropout=0.0,
+        dropout=0.0,
     ):
         super().__init__()
         self.dim = embedding_size
@@ -58,8 +62,16 @@ class TransformerDecoderLayerKG(nn.Module):
         self.ffn = TransformerFFN(embedding_size, ffn_size, relu_dropout=relu_dropout)
         self.norm3 = nn.LayerNorm(embedding_size)
 
-    def forward(self, x, encoder_output, encoder_mask, kg_encoder_output, kg_encoder_mask, db_encoder_output,
-                db_encoder_mask):
+    def forward(
+        self,
+        x,
+        encoder_output,
+        encoder_mask,
+        kg_encoder_output,
+        kg_encoder_mask,
+        db_encoder_output,
+        db_encoder_mask,
+    ):
         decoder_mask = _create_selfattn_mask(x)
         # first self attn
         residual = x
@@ -74,7 +86,7 @@ class TransformerDecoderLayerKG(nn.Module):
             query=x,
             key=db_encoder_output,
             value=db_encoder_output,
-            mask=db_encoder_mask
+            mask=db_encoder_mask,
         )
         x = self.dropout(x)  # --dropout
         x = residual + x
@@ -85,7 +97,7 @@ class TransformerDecoderLayerKG(nn.Module):
             query=x,
             key=kg_encoder_output,
             value=kg_encoder_output,
-            mask=kg_encoder_mask
+            mask=kg_encoder_mask,
         )
         x = self.dropout(x)  # --dropout
         x = residual + x
@@ -93,10 +105,7 @@ class TransformerDecoderLayerKG(nn.Module):
 
         residual = x
         x = self.encoder_attention(
-            query=x,
-            key=encoder_output,
-            value=encoder_output,
-            mask=encoder_mask
+            query=x, key=encoder_output, value=encoder_output, mask=encoder_mask
         )
         x = self.dropout(x)  # --dropout
         x = residual + x
@@ -138,20 +147,20 @@ class TransformerDecoderKG(nn.Module):
     """
 
     def __init__(
-            self,
-            n_heads,
-            n_layers,
-            embedding_size,
-            ffn_size,
-            vocabulary_size,
-            embedding,
-            dropout=0.0,
-            attention_dropout=0.0,
-            relu_dropout=0.0,
-            embeddings_scale=True,
-            learn_positional_embeddings=False,
-            padding_idx=None,
-            n_positions=1024,
+        self,
+        n_heads,
+        n_layers,
+        embedding_size,
+        ffn_size,
+        vocabulary_size,
+        embedding,
+        dropout=0.0,
+        attention_dropout=0.0,
+        relu_dropout=0.0,
+        embeddings_scale=True,
+        learn_positional_embeddings=False,
+        padding_idx=None,
+        n_positions=1024,
     ):
         super().__init__()
         self.embedding_size = embedding_size
@@ -163,8 +172,9 @@ class TransformerDecoderKG(nn.Module):
         self.dropout = nn.Dropout(dropout)  # --dropout
 
         self.out_dim = embedding_size
-        assert embedding_size % n_heads == 0, \
-            'Transformer embedding size must be a multiple of n_heads'
+        assert (
+            embedding_size % n_heads == 0
+        ), "Transformer embedding size must be a multiple of n_heads"
 
         self.embeddings = embedding
 
@@ -175,20 +185,32 @@ class TransformerDecoderKG(nn.Module):
                 n_positions, embedding_size, out=self.position_embeddings.weight
             )
         else:
-            nn.init.normal_(self.position_embeddings.weight, 0, embedding_size ** -0.5)
+            nn.init.normal_(self.position_embeddings.weight, 0, embedding_size**-0.5)
 
         # build the model
         self.layers = nn.ModuleList()
         for _ in range(self.n_layers):
-            self.layers.append(TransformerDecoderLayerKG(
-                n_heads, embedding_size, ffn_size,
-                attention_dropout=attention_dropout,
-                relu_dropout=relu_dropout,
-                dropout=dropout,
-            ))
+            self.layers.append(
+                TransformerDecoderLayerKG(
+                    n_heads,
+                    embedding_size,
+                    ffn_size,
+                    attention_dropout=attention_dropout,
+                    relu_dropout=relu_dropout,
+                    dropout=dropout,
+                )
+            )
 
-    def forward(self, input, encoder_state, kg_encoder_output, kg_encoder_mask,
-                db_encoder_output, db_encoder_mask, incr_state=None):
+    def forward(
+        self,
+        input,
+        encoder_state,
+        kg_encoder_output,
+        kg_encoder_mask,
+        db_encoder_output,
+        db_encoder_mask,
+        incr_state=None,
+    ):
         encoder_output, encoder_mask = encoder_state
 
         seq_len = input.size(1)
@@ -201,7 +223,14 @@ class TransformerDecoderKG(nn.Module):
         tensor = self.dropout(tensor)  # --dropout
 
         for layer in self.layers:
-            tensor = layer(tensor, encoder_output, encoder_mask, kg_encoder_output, kg_encoder_mask, db_encoder_output,
-                           db_encoder_mask)
+            tensor = layer(
+                tensor,
+                encoder_output,
+                encoder_mask,
+                kg_encoder_output,
+                kg_encoder_mask,
+                db_encoder_output,
+                db_encoder_mask,
+            )
 
         return tensor, None

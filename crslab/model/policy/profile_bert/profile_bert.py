@@ -47,13 +47,13 @@ class ProfileBERTModel(BaseModel):
             device (torch.device): A variable indicating which device to place the data and model.
             vocab (dict): A dictionary record the vocabulary information.
             side_data (dict): A dictionary record the side data.
-        
-        """
-        self.topic_class_num = vocab['n_topic']
-        self.n_sent = opt.get('n_sent', 10)
 
-        language = dataset_language_map[opt['dataset']]
-        resource = resources['bert'][language]
+        """
+        self.topic_class_num = vocab["n_topic"]
+        self.n_sent = opt.get("n_sent", 10)
+
+        language = dataset_language_map[opt["dataset"]]
+        resource = resources["bert"][language]
         dpath = os.path.join(PRETRAIN_PATH, "bert", language)
         super(ProfileBERTModel, self).__init__(opt, device, dpath, resource)
 
@@ -62,18 +62,26 @@ class ProfileBERTModel(BaseModel):
         self.profile_bert = BertModel.from_pretrained(self.dpath)
 
         self.bert_hidden_size = self.profile_bert.config.hidden_size
-        self.state2topic_id = nn.Linear(self.bert_hidden_size,
-                                        self.topic_class_num)
+        self.state2topic_id = nn.Linear(self.bert_hidden_size, self.topic_class_num)
 
         self.loss = nn.CrossEntropyLoss()
 
     def forward(self, batch, mode):
         # conv_id, message_id, context, context_mask, topic_path_kw, tp_mask, user_profile, profile_mask, y = batch
-        context, context_mask, topic_path_kw, tp_mask, user_profile, profile_mask, y = batch
+        (
+            context,
+            context_mask,
+            topic_path_kw,
+            tp_mask,
+            user_profile,
+            profile_mask,
+            y,
+        ) = batch
 
         bs = user_profile.size(0) // self.n_sent
         profile_rep = self.profile_bert(
-            user_profile, profile_mask).pooler_output  # (bs, word_num, hidden)
+            user_profile, profile_mask
+        ).pooler_output  # (bs, word_num, hidden)
         profile_rep = profile_rep.view(bs, self.n_sent, -1)
         profile_rep = torch.mean(profile_rep, dim=1)  # (bs, hidden)
 

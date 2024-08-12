@@ -58,33 +58,35 @@ class ReDialConvModel(BaseModel):
 
         """
         # dataset
-        self.vocab_size = vocab['vocab_size']
-        self.pad_token_idx = vocab['pad']
-        self.start_token_idx = vocab['start']
-        self.end_token_idx = vocab['end']
-        self.unk_token_idx = vocab['unk']
-        self.pretrained_embedding = side_data.get('embedding', None)
-        self.embedding_dim = opt.get('embedding_dim', None)
-        if opt.get('embedding', None) and self.embedding_dim is None:
+        self.vocab_size = vocab["vocab_size"]
+        self.pad_token_idx = vocab["pad"]
+        self.start_token_idx = vocab["start"]
+        self.end_token_idx = vocab["end"]
+        self.unk_token_idx = vocab["unk"]
+        self.pretrained_embedding = side_data.get("embedding", None)
+        self.embedding_dim = opt.get("embedding_dim", None)
+        if opt.get("embedding", None) and self.embedding_dim is None:
             raise
         # HRNN
-        self.utterance_encoder_hidden_size = opt['utterance_encoder_hidden_size']
-        self.dialog_encoder_hidden_size = opt['dialog_encoder_hidden_size']
-        self.dialog_encoder_num_layers = opt['dialog_encoder_num_layers']
-        self.use_dropout = opt['use_dropout']
-        self.dropout = opt['dropout']
+        self.utterance_encoder_hidden_size = opt["utterance_encoder_hidden_size"]
+        self.dialog_encoder_hidden_size = opt["dialog_encoder_hidden_size"]
+        self.dialog_encoder_num_layers = opt["dialog_encoder_num_layers"]
+        self.use_dropout = opt["use_dropout"]
+        self.dropout = opt["dropout"]
         # SwitchingDecoder
-        self.decoder_hidden_size = opt['decoder_hidden_size']
-        self.decoder_num_layers = opt['decoder_num_layers']
-        self.decoder_embedding_dim = opt['decoder_embedding_dim']
+        self.decoder_hidden_size = opt["decoder_hidden_size"]
+        self.decoder_num_layers = opt["decoder_num_layers"]
+        self.decoder_embedding_dim = opt["decoder_embedding_dim"]
 
         super(ReDialConvModel, self).__init__(opt, device)
 
     def build_model(self):
-        if self.opt.get('embedding', None) and self.pretrained_embedding is not None:
+        if self.opt.get("embedding", None) and self.pretrained_embedding is not None:
             embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(self.pretrained_embedding, dtype=torch.float), freeze=False,
-                padding_idx=self.pad_token_idx)
+                torch.as_tensor(self.pretrained_embedding, dtype=torch.float),
+                freeze=False,
+                padding_idx=self.pad_token_idx,
+            )
         else:
             embedding = nn.Embedding(self.vocab_size, self.embedding_dim)
 
@@ -95,7 +97,7 @@ class ReDialConvModel(BaseModel):
             dialog_encoder_num_layers=self.dialog_encoder_num_layers,
             use_dropout=self.use_dropout,
             dropout=self.dropout,
-            pad_token_idx=self.pad_token_idx
+            pad_token_idx=self.pad_token_idx,
         )
 
         self.decoder = SwitchingDecoder(
@@ -104,7 +106,7 @@ class ReDialConvModel(BaseModel):
             num_layers=self.decoder_num_layers,
             vocab_size=self.vocab_size,
             embedding=embedding,
-            pad_token_idx=self.pad_token_idx
+            pad_token_idx=self.pad_token_idx,
         )
         self.loss = nn.CrossEntropyLoss(ignore_index=self.pad_token_idx)
 
@@ -123,26 +125,28 @@ class ReDialConvModel(BaseModel):
                 }
 
         """
-        assert mode in ('train', 'valid', 'test')
-        if mode == 'train':
+        assert mode in ("train", "valid", "test")
+        if mode == "train":
             self.train()
         else:
             self.eval()
 
-        context = batch['context']
-        utterance_lengths = batch['utterance_lengths']
-        context_lengths = batch['context_lengths']
-        context_state = self.encoder(context, utterance_lengths,
-                                     context_lengths)  # (batch_size, context_encoder_hidden_size)
+        context = batch["context"]
+        utterance_lengths = batch["utterance_lengths"]
+        context_lengths = batch["context_lengths"]
+        context_state = self.encoder(
+            context, utterance_lengths, context_lengths
+        )  # (batch_size, context_encoder_hidden_size)
 
-        request = batch['request']
-        request_lengths = batch['request_lengths']
-        log_probs = self.decoder(request, request_lengths,
-                                 context_state)  # (batch_size, max_utterance_length, vocab_size + 1)
+        request = batch["request"]
+        request_lengths = batch["request_lengths"]
+        log_probs = self.decoder(
+            request, request_lengths, context_state
+        )  # (batch_size, max_utterance_length, vocab_size + 1)
         preds = log_probs.argmax(dim=-1)  # (batch_size, max_utterance_length)
 
         log_probs = log_probs.view(-1, log_probs.shape[-1])
-        response = batch['response'].view(-1)
+        response = batch["response"].view(-1)
         loss = self.loss(log_probs, response)
 
         return loss, preds

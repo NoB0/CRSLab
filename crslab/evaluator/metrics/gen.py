@@ -19,9 +19,9 @@ from typing import List, Optional
 
 from crslab.evaluator.metrics.base import AverageMetric, SumMetric
 
-re_art = re.compile(r'\b(a|an|the)\b')
+re_art = re.compile(r"\b(a|an|the)\b")
 re_punc = re.compile(r'[!"#$%&()*+,-./:;<=>?@\[\]\\^`{|}~_\']')
-re_space = re.compile(r'\s+')
+re_space = re.compile(r"\s+")
 
 
 class PPLMetric(AverageMetric):
@@ -35,16 +35,16 @@ def normalize_answer(s):
     """
 
     s = s.lower()
-    s = re_punc.sub(' ', s)
-    s = re_art.sub(' ', s)
-    s = re_space.sub(' ', s)
+    s = re_punc.sub(" ", s)
+    s = re_art.sub(" ", s)
+    s = re_space.sub(" ", s)
     # s = ' '.join(s.split())
     return s
 
 
 class ExactMatchMetric(AverageMetric):
     @staticmethod
-    def compute(guess: str, answers: List[str]) -> 'ExactMatchMetric':
+    def compute(guess: str, answers: List[str]) -> "ExactMatchMetric":
         if guess is None or answers is None:
             return None
         for a in answers:
@@ -78,20 +78,17 @@ class F1Metric(AverageMetric):
         return f1
 
     @staticmethod
-    def compute(guess: str, answers: List[str]) -> 'F1Metric':
+    def compute(guess: str, answers: List[str]) -> "F1Metric":
         if guess is None or answers is None:
             return AverageMetric(0, 0)
         g_tokens = guess.split()
-        scores = [
-            F1Metric._prec_recall_f1_score(g_tokens, a.split())
-            for a in answers
-        ]
+        scores = [F1Metric._prec_recall_f1_score(g_tokens, a.split()) for a in answers]
         return F1Metric(max(scores), 1)
 
 
 class BleuMetric(AverageMetric):
     @staticmethod
-    def compute(guess: str, answers: List[str], k: int) -> Optional['BleuMetric']:
+    def compute(guess: str, answers: List[str], k: int) -> Optional["BleuMetric"]:
         """
         Compute approximate BLEU score between guess and a set of answers.
         """
@@ -108,7 +105,7 @@ class BleuMetric(AverageMetric):
 
 class DistMetric(SumMetric):
     @staticmethod
-    def compute(sent: str, k: int) -> 'DistMetric':
+    def compute(sent: str, k: int) -> "DistMetric":
         token_set = set()
         for token in ngrams(sent.split(), k):
             token_set.add(token)
@@ -118,14 +115,18 @@ class DistMetric(SumMetric):
 class EmbeddingAverage(AverageMetric):
     @staticmethod
     def _avg_embedding(embedding):
-        return np.sum(embedding, axis=0) / (np.linalg.norm(np.sum(embedding, axis=0)) + 1e-12)
+        return np.sum(embedding, axis=0) / (
+            np.linalg.norm(np.sum(embedding, axis=0)) + 1e-12
+        )
 
     @staticmethod
-    def compute(hyp_embedding, ref_embeddings) -> 'EmbeddingAverage':
+    def compute(hyp_embedding, ref_embeddings) -> "EmbeddingAverage":
         hyp_avg_emb = EmbeddingAverage._avg_embedding(hyp_embedding).reshape(1, -1)
         ref_avg_embs = [EmbeddingAverage._avg_embedding(emb) for emb in ref_embeddings]
         ref_avg_embs = np.array(ref_avg_embs)
-        return EmbeddingAverage(float(cosine_similarity(hyp_avg_emb, ref_avg_embs).max()))
+        return EmbeddingAverage(
+            float(cosine_similarity(hyp_avg_emb, ref_avg_embs).max())
+        )
 
 
 class VectorExtrema(AverageMetric):
@@ -134,12 +135,19 @@ class VectorExtrema(AverageMetric):
         max_emb = np.max(embedding, axis=0)
         min_emb = np.min(embedding, axis=0)
         extreme_emb = np.fromiter(
-            map(lambda x, y: x if ((x > y or x < -y) and y > 0) or ((x < y or x > -y) and y < 0) else y, max_emb,
-                min_emb), dtype=float)
+            map(
+                lambda x, y: x
+                if ((x > y or x < -y) and y > 0) or ((x < y or x > -y) and y < 0)
+                else y,
+                max_emb,
+                min_emb,
+            ),
+            dtype=float,
+        )
         return extreme_emb
 
     @staticmethod
-    def compute(hyp_embedding, ref_embeddings) -> 'VectorExtrema':
+    def compute(hyp_embedding, ref_embeddings) -> "VectorExtrema":
         hyp_ext_emb = VectorExtrema._extreme_embedding(hyp_embedding).reshape(1, -1)
         ref_ext_embs = [VectorExtrema._extreme_embedding(emb) for emb in ref_embeddings]
         ref_ext_embs = np.asarray(ref_ext_embs)
@@ -148,11 +156,13 @@ class VectorExtrema(AverageMetric):
 
 class GreedyMatch(AverageMetric):
     @staticmethod
-    def compute(hyp_embedding, ref_embeddings) -> 'GreedyMatch':
+    def compute(hyp_embedding, ref_embeddings) -> "GreedyMatch":
         hyp_emb = np.asarray(hyp_embedding)
         ref_embs = (np.asarray(ref_embedding) for ref_embedding in ref_embeddings)
         score_max = 0
         for ref_emb in ref_embs:
             sim_mat = cosine_similarity(hyp_emb, ref_emb)
-            score_max = max(score_max, (sim_mat.max(axis=0).mean() + sim_mat.max(axis=1).mean()) / 2)
+            score_max = max(
+                score_max, (sim_mat.max(axis=0).mean() + sim_mat.max(axis=1).mean()) / 2
+            )
         return GreedyMatch(score_max)

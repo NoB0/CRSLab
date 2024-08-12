@@ -47,41 +47,46 @@ class MGCGModel(BaseModel):
             device (torch.device): A variable indicating which device to place the data and model.
             vocab (dict): A dictionary record the vocabulary information.
             side_data (dict): A dictionary record the side data.
-        
+
         """
-        self.topic_class_num = vocab['n_topic']
-        self.vocab_size = vocab['vocab_size']
-        self.embedding_dim = opt['embedding_dim']
-        self.hidden_size = opt['hidden_size']
-        self.num_layers = opt['num_layers']
-        self.dropout_hidden = opt['dropout_hidden']
-        self.n_sent = opt.get('n_sent', 10)
+        self.topic_class_num = vocab["n_topic"]
+        self.vocab_size = vocab["vocab_size"]
+        self.embedding_dim = opt["embedding_dim"]
+        self.hidden_size = opt["hidden_size"]
+        self.num_layers = opt["num_layers"]
+        self.dropout_hidden = opt["dropout_hidden"]
+        self.n_sent = opt.get("n_sent", 10)
 
         super(MGCGModel, self).__init__(opt, device)
 
     def build_model(self, *args, **kwargs):
         """build model"""
         self.embeddings = nn.Embedding(self.vocab_size, self.embedding_dim)
-        self.context_lstm = nn.LSTM(self.embedding_dim,
-                                    self.hidden_size,
-                                    self.num_layers,
-                                    dropout=self.dropout_hidden,
-                                    batch_first=True)
+        self.context_lstm = nn.LSTM(
+            self.embedding_dim,
+            self.hidden_size,
+            self.num_layers,
+            dropout=self.dropout_hidden,
+            batch_first=True,
+        )
 
-        self.topic_lstm = nn.LSTM(self.embedding_dim,
-                                  self.hidden_size,
-                                  self.num_layers,
-                                  dropout=self.dropout_hidden,
-                                  batch_first=True)
+        self.topic_lstm = nn.LSTM(
+            self.embedding_dim,
+            self.hidden_size,
+            self.num_layers,
+            dropout=self.dropout_hidden,
+            batch_first=True,
+        )
 
-        self.profile_lstm = nn.LSTM(self.embedding_dim,
-                                    self.hidden_size,
-                                    self.num_layers,
-                                    dropout=self.dropout_hidden,
-                                    batch_first=True)
+        self.profile_lstm = nn.LSTM(
+            self.embedding_dim,
+            self.hidden_size,
+            self.num_layers,
+            dropout=self.dropout_hidden,
+            batch_first=True,
+        )
 
-        self.state2topic_id = nn.Linear(self.hidden_size * 3,
-                                        self.topic_class_num)
+        self.state2topic_id = nn.Linear(self.hidden_size * 3, self.topic_class_num)
         self.loss = nn.CrossEntropyLoss()
 
     def get_length(self, input):
@@ -89,7 +94,15 @@ class MGCGModel(BaseModel):
 
     def forward(self, batch, mode):
         # conv_id, message_id, context, context_mask, topic_path_kw, tp_mask, user_profile, profile_mask, y = batch
-        context, context_mask, topic_path_kw, tp_mask, user_profile, profile_mask, y = batch
+        (
+            context,
+            context_mask,
+            topic_path_kw,
+            tp_mask,
+            user_profile,
+            profile_mask,
+            y,
+        ) = batch
 
         len_context = self.get_length(context)
         len_tp = self.get_length(topic_path_kw)
@@ -102,34 +115,34 @@ class MGCGModel(BaseModel):
         topic_path_kw = self.embeddings(topic_path_kw)
         user_profile = self.embeddings(user_profile)
 
-        context = pack_padded_sequence(context,
-                                       len_context,
-                                       enforce_sorted=False,
-                                       batch_first=True)
-        topic_path_kw = pack_padded_sequence(topic_path_kw,
-                                             len_tp,
-                                             enforce_sorted=False,
-                                             batch_first=True)
-        user_profile = pack_padded_sequence(user_profile,
-                                            len_profile,
-                                            enforce_sorted=False,
-                                            batch_first=True)
+        context = pack_padded_sequence(
+            context, len_context, enforce_sorted=False, batch_first=True
+        )
+        topic_path_kw = pack_padded_sequence(
+            topic_path_kw, len_tp, enforce_sorted=False, batch_first=True
+        )
+        user_profile = pack_padded_sequence(
+            user_profile, len_profile, enforce_sorted=False, batch_first=True
+        )
 
-        init_h0 = (torch.zeros(self.num_layers, bs,
-                               self.hidden_size).to(self.device),
-                   torch.zeros(self.num_layers, bs,
-                               self.hidden_size).to(self.device))
+        init_h0 = (
+            torch.zeros(self.num_layers, bs, self.hidden_size).to(self.device),
+            torch.zeros(self.num_layers, bs, self.hidden_size).to(self.device),
+        )
 
         # batch, seq_len, num_directions * hidden_size        # num_layers * num_directions, batch, hidden_size
         context_output, (context_h, _) = self.context_lstm(context, init_h0)
         topic_output, (topic_h, _) = self.topic_lstm(topic_path_kw, init_h0)
         # batch*sent_num, seq_len, num_directions * hidden_size
-        init_h0 = (torch.zeros(self.num_layers, bs * self.n_sent,
-                               self.hidden_size).to(self.device),
-                   torch.zeros(self.num_layers, bs * self.n_sent,
-                               self.hidden_size).to(self.device))
-        profile_output, (profile_h,
-                         _) = self.profile_lstm(user_profile, init_h0)
+        init_h0 = (
+            torch.zeros(self.num_layers, bs * self.n_sent, self.hidden_size).to(
+                self.device
+            ),
+            torch.zeros(self.num_layers, bs * self.n_sent, self.hidden_size).to(
+                self.device
+            ),
+        )
+        profile_output, (profile_h, _) = self.profile_lstm(user_profile, init_h0)
 
         # batch, hidden_size
         context_rep = context_h[-1]

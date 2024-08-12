@@ -24,8 +24,8 @@ class BaseModel(ABC, nn.Module):
 
         if resource is not None:
             self.dpath = dpath
-            dfile = resource['file']
-            build(dpath, dfile, version=resource['version'])
+            dfile = resource["file"]
+            build(dpath, dfile, version=resource["version"])
 
         self.build_model()
 

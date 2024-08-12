@@ -33,7 +33,7 @@ class Metric(ABC):
         pass
 
     @abstractmethod
-    def __add__(self, other: Any) -> 'Metric':
+    def __add__(self, other: Any) -> "Metric":
         raise NotImplementedError
 
     def __iadd__(self, other):
@@ -45,10 +45,10 @@ class Metric(ABC):
         return self.__add__(other)
 
     def __str__(self) -> str:
-        return f'{self.value():.4g}'
+        return f"{self.value():.4g}"
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.value():.4g})'
+        return f"{self.__class__.__name__}({self.value():.4g})"
 
     def __float__(self) -> float:
         return float(self.value())
@@ -73,7 +73,7 @@ class Metric(ABC):
         Used heavily for assertAlmostEqual.
         """
         if not isinstance(other, float):
-            raise TypeError('Metrics.__sub__ is intentionally limited to floats.')
+            raise TypeError("Metrics.__sub__ is intentionally limited to floats.")
         return self.value() - other
 
     def __rsub__(self, other: Any) -> float:
@@ -83,7 +83,7 @@ class Metric(ABC):
         NOTE: This is not necessary in python 3.7+.
         """
         if not isinstance(other, float):
-            raise TypeError('Metrics.__rsub__ is intentionally limited to floats.')
+            raise TypeError("Metrics.__rsub__ is intentionally limited to floats.")
         return other - self.value()
 
     @classmethod
@@ -104,7 +104,7 @@ class Metric(ABC):
         return int(cls.as_number(obj))
 
     @classmethod
-    def many(cls, *objs: List[TVector]) -> List['Metric']:
+    def many(cls, *objs: List[TVector]) -> List["Metric"]:
         """
         Construct many of a Metric from the base parts.
 
@@ -112,7 +112,7 @@ class Metric(ABC):
         """
         lengths = [len(o) for o in objs]
         if len(set(lengths)) != 1:
-            raise IndexError(f'Uneven {cls.__name__} constructions: {lengths}')
+            raise IndexError(f"Uneven {cls.__name__} constructions: {lengths}")
         return [cls(*items) for items in zip(*objs)]
 
 
@@ -124,7 +124,7 @@ class SumMetric(Metric):
     the last report, which depends exactly on a teacher.
     """
 
-    __slots__ = ('_sum',)
+    __slots__ = ("_sum",)
 
     def __init__(self, sum_: TScalar = 0):
         if isinstance(sum_, torch.Tensor):
@@ -133,7 +133,7 @@ class SumMetric(Metric):
             assert isinstance(sum_, (int, float))
             self._sum = sum_
 
-    def __add__(self, other: Optional['SumMetric']) -> 'SumMetric':
+    def __add__(self, other: Optional["SumMetric"]) -> "SumMetric":
         # NOTE: hinting can be cleaned up with "from __future__ import annotations" when
         # we drop Python 3.6
         if other is None:
@@ -154,13 +154,13 @@ class AverageMetric(Metric):
     per-example values that can be directly mapped back to a teacher.
     """
 
-    __slots__ = ('_numer', '_denom')
+    __slots__ = ("_numer", "_denom")
 
     def __init__(self, numer: TScalar, denom: TScalar = 1):
         self._numer = self.as_number(numer)
         self._denom = self.as_number(denom)
 
-    def __add__(self, other: Optional['AverageMetric']) -> 'AverageMetric':
+    def __add__(self, other: Optional["AverageMetric"]) -> "AverageMetric":
         # NOTE: hinting can be cleaned up with "from __future__ import annotations" when
         # we drop Python 3.6
         if other is None:
@@ -175,7 +175,7 @@ class AverageMetric(Metric):
             # don't nan out if we haven't counted anything
             return 0.0
         if self._denom == 0:
-            return float('nan')
+            return float("nan")
         return self._numer / self._denom
 
 
@@ -202,7 +202,7 @@ class Metrics(object):
         return str(self._data)
 
     def __repr__(self):
-        return f'Metrics({repr(self._data)})'
+        return f"Metrics({repr(self._data)})"
 
     def get(self, key: str):
         if key in self._data.keys():

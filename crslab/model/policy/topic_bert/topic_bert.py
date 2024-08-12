@@ -46,13 +46,13 @@ class TopicBERTModel(BaseModel):
             device (torch.device): A variable indicating which device to place the data and model.
             vocab (dict): A dictionary record the vocabulary information.
             side_data (dict): A dictionary record the side data.
-        
-        """
-        self.topic_class_num = vocab['n_topic']
 
-        language = dataset_language_map[opt['dataset']]
+        """
+        self.topic_class_num = vocab["n_topic"]
+
+        language = dataset_language_map[opt["dataset"]]
         dpath = os.path.join(PRETRAIN_PATH, "bert", language)
-        resource = resources['bert'][language]
+        resource = resources["bert"][language]
         super(TopicBERTModel, self).__init__(opt, device, dpath, resource)
 
     def build_model(self, *args, **kwargs):
@@ -60,18 +60,25 @@ class TopicBERTModel(BaseModel):
         self.topic_bert = BertModel.from_pretrained(self.dpath)
 
         self.bert_hidden_size = self.topic_bert.config.hidden_size
-        self.state2topic_id = nn.Linear(self.bert_hidden_size,
-                                        self.topic_class_num)
+        self.state2topic_id = nn.Linear(self.bert_hidden_size, self.topic_class_num)
 
         self.loss = nn.CrossEntropyLoss()
 
     def forward(self, batch, mode):
         # conv_id, message_id, context, context_mask, topic_path_kw, tp_mask, user_profile, profile_mask, y = batch
-        context, context_mask, topic_path_kw, tp_mask, user_profile, profile_mask, y = batch
+        (
+            context,
+            context_mask,
+            topic_path_kw,
+            tp_mask,
+            user_profile,
+            profile_mask,
+            y,
+        ) = batch
 
         topic_rep = self.topic_bert(
-            topic_path_kw,
-            tp_mask).pooler_output  # (bs, hidden_size)
+            topic_path_kw, tp_mask
+        ).pooler_output  # (bs, hidden_size)
 
         topic_scores = self.state2topic_id(topic_rep)
 

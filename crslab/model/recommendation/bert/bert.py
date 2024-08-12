@@ -48,10 +48,10 @@ class BERTModel(BaseModel):
             side_data (dict): A dictionary record the side data.
 
         """
-        self.item_size = vocab['n_entity']
+        self.item_size = vocab["n_entity"]
 
-        language = dataset_language_map[opt['dataset']]
-        resource = resources['bert'][language]
+        language = dataset_language_map[opt["dataset"]]
+        resource = resources["bert"][language]
         dpath = os.path.join(PRETRAIN_PATH, "bert", language)
         super(BERTModel, self).__init__(opt, device, dpath, resource)
 
@@ -65,9 +65,9 @@ class BERTModel(BaseModel):
         # this loss may conduct to some weakness
         self.rec_loss = nn.CrossEntropyLoss()
 
-        logger.debug('[Finish build rec layer]')
+        logger.debug("[Finish build rec layer]")
 
-    def forward(self, batch, mode='train'):
+    def forward(self, batch, mode="train"):
         context, mask, input_ids, target_pos, input_mask, sample_negs, y = batch
 
         bert_embed = self.bert(context, attention_mask=mask).pooler_output

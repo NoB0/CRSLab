@@ -34,13 +34,15 @@ class InspiredConvModel(BaseModel):
             side_data (dict): A dictionary record the side data.
 
         """
-        self.context_truncate = opt['context_truncate']
-        self.response_truncate = opt['response_truncate']
-        self.pad_id = vocab['pad']
-        self.label_smoothing = opt['conv']['label_smoothing'] if 'label_smoothing' in opt['conv'] else -1
+        self.context_truncate = opt["context_truncate"]
+        self.response_truncate = opt["response_truncate"]
+        self.pad_id = vocab["pad"]
+        self.label_smoothing = (
+            opt["conv"]["label_smoothing"] if "label_smoothing" in opt["conv"] else -1
+        )
 
-        language = dataset_language_map[opt['dataset']]
-        resource = resources['gpt2'][language]
+        language = dataset_language_map[opt["dataset"]]
+        resource = resources["gpt2"][language]
         dpath = os.path.join(PRETRAIN_PATH, "gpt2", language)
         super(InspiredConvModel, self).__init__(opt, device, dpath, resource)
 
@@ -68,9 +70,9 @@ class InspiredConvModel(BaseModel):
         past = None
         lm_logits_all = []
 
-        if mode != 'test':
+        if mode != "test":
             for turn, iter in enumerate(input_ids_iters):
-                if (roles[turn] == 0):
+                if roles[turn] == 0:
                     # considering that gpt2 only supports up to 1024 tokens
                     if past is not None and past[0].shape[3] + iter.shape[1] > 1024:
                         past = None
@@ -84,15 +86,18 @@ class InspiredConvModel(BaseModel):
                     lm_logits, past = outputs.logits, outputs.past_key_values
                     lm_logits_all.append(lm_logits)
 
-            lm_logits_all = torch.cat(lm_logits_all, dim=0)  # (b_s, seq_len, vocab_size)
+            lm_logits_all = torch.cat(
+                lm_logits_all, dim=0
+            )  # (b_s, seq_len, vocab_size)
 
             # index from 1 to self.reponse_truncate is valid response
             loss = self.calculate_loss(
-                lm_logits_all[:, -self.response_truncate:-1, :],
-                input_ids[:, -self.response_truncate + 1:])
+                lm_logits_all[:, -self.response_truncate : -1, :],
+                input_ids[:, -self.response_truncate + 1 :],
+            )
 
             pred = torch.max(lm_logits_all, dim=2)[1]  # (b_s, seq_len)
-            pred = pred[:, -self.response_truncate:]
+            pred = pred[:, -self.response_truncate :]
 
             return loss, pred
         else:
@@ -109,7 +114,7 @@ class InspiredConvModel(BaseModel):
         """
         generated_response = []
         former_hidden_state = None
-        context = context[..., -self.response_truncate + 1:]
+        context = context[..., -self.response_truncate + 1 :]
 
         for i in range(self.response_truncate - 1):
             last_hidden_state_all = []
@@ -119,7 +124,10 @@ class InspiredConvModel(BaseModel):
                     outputs = self.model_sk(iter, former_hidden_state)  # (1, s_l, v_s),
                 else:
                     outputs = self.model_rm(iter, former_hidden_state)  # (1, s_l, v_s),
-                last_hidden_state, former_hidden_state = outputs.logits, outputs.past_key_values
+                last_hidden_state, former_hidden_state = (
+                    outputs.logits,
+                    outputs.past_key_values,
+                )
                 last_hidden_state_all.append(last_hidden_state)
 
             last_hidden_state_all = torch.cat(last_hidden_state_all, dim=0)

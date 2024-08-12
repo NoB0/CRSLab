@@ -32,7 +32,7 @@ from crslab.model.pretrained_models import resources
 
 class TGConvModel(BaseModel):
     """
-        
+
     Attributes:
         context_truncate: A integer indicating the length of dialogue context.
         response_truncate: A integer indicating the length of dialogue response.
@@ -50,13 +50,13 @@ class TGConvModel(BaseModel):
             side_data (dict): A dictionary record the side data.
 
         """
-        self.context_truncate = opt['context_truncate']
-        self.response_truncate = opt['response_truncate']
-        self.pad_id = vocab['pad']
+        self.context_truncate = opt["context_truncate"]
+        self.response_truncate = opt["response_truncate"]
+        self.pad_id = vocab["pad"]
 
-        language = dataset_language_map[opt['dataset']]
-        resource = resources['gpt2'][language]
-        dpath = os.path.join(PRETRAIN_PATH, 'gpt2', language)
+        language = dataset_language_map[opt["dataset"]]
+        resource = resources["gpt2"][language]
+        dpath = os.path.join(PRETRAIN_PATH, "gpt2", language)
         super(TGConvModel, self).__init__(opt, device, dpath, resource)
 
     def build_model(self):
@@ -65,7 +65,7 @@ class TGConvModel(BaseModel):
         self.loss = CrossEntropyLoss(ignore_index=self.pad_id)
 
     def forward(self, batch, mode):
-        if mode == 'test' or mode == 'infer':
+        if mode == "test" or mode == "infer":
             enhanced_context = batch[1]
             return self.generate(enhanced_context)
         else:
@@ -75,11 +75,12 @@ class TGConvModel(BaseModel):
 
             # index from 1 to self.reponse_truncate is valid response
             loss = self.calculate_loss(
-                lm_logits[:, -self.response_truncate:-1, :],
-                enhanced_input_ids[:, -self.response_truncate + 1:])
+                lm_logits[:, -self.response_truncate : -1, :],
+                enhanced_input_ids[:, -self.response_truncate + 1 :],
+            )
 
             pred = torch.max(lm_logits, dim=2)[1]  # [bs, seq_len]
-            pred = pred[:, -self.response_truncate:]
+            pred = pred[:, -self.response_truncate :]
 
             return loss, pred
 
@@ -93,11 +94,14 @@ class TGConvModel(BaseModel):
         """
         generated_response = []
         former_hidden_state = None
-        context = context[..., -self.response_truncate + 1:]
+        context = context[..., -self.response_truncate + 1 :]
 
         for i in range(self.response_truncate - 1):
             outputs = self.model(context, former_hidden_state)  # (bs, c_t, v_s),
-            last_hidden_state, former_hidden_state = outputs.logits, outputs.past_key_values
+            last_hidden_state, former_hidden_state = (
+                outputs.logits,
+                outputs.past_key_values,
+            )
 
             next_token_logits = last_hidden_state[:, -1, :]  # (bs, v_s)
             preds = next_token_logits.argmax(dim=-1).long()  # (bs)
@@ -110,7 +114,7 @@ class TGConvModel(BaseModel):
         return generated_response
 
     def generate_bs(self, context, beam=4):
-        context = context[..., -self.response_truncate + 1:]
+        context = context[..., -self.response_truncate + 1 :]
         context_former = context
         batch_size = context.shape[0]
         sequences = [[[list(), 1.0]]] * batch_size
@@ -120,7 +124,8 @@ class TGConvModel(BaseModel):
                 for i in range(batch_size):
                     for cand in sequences[i]:
                         text = torch.cat(
-                            (context_former[i], torch.tensor(cand[0]).to(self.device)))  # 由于取消了state，与之前的context拼接
+                            (context_former[i], torch.tensor(cand[0]).to(self.device))
+                        )  # 由于取消了state，与之前的context拼接
                         context.append(text)
                 context = torch.stack(context)
             with torch.no_grad():
@@ -130,7 +135,9 @@ class TGConvModel(BaseModel):
             next_token_probs = torch.nn.functional.softmax(next_token_logits)
             topk = torch.topk(next_token_probs, beam, dim=-1)
             probs = topk.values.reshape([batch_size, -1, beam])  # (bs, candidate, beam)
-            preds = topk.indices.reshape([batch_size, -1, beam])  # (bs, candidate, beam)
+            preds = topk.indices.reshape(
+                [batch_size, -1, beam]
+            )  # (bs, candidate, beam)
 
             for j in range(batch_size):
                 all_candidates = []

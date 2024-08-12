@@ -13,8 +13,16 @@ from crslab.data import get_dataset, get_dataloader
 from crslab.system import get_system
 
 
-def run_crslab(config, save_data=False, restore_data=False, save_system=False, restore_system=False,
-               interact=False, debug=False, tensorboard=False):
+def run_crslab(
+    config,
+    save_data=False,
+    restore_data=False,
+    save_system=False,
+    restore_system=False,
+    interact=False,
+    debug=False,
+    tensorboard=False,
+):
     """A fast running api, which includes the complete process of training and testing models on specified datasets.
 
     Args:
@@ -33,8 +41,8 @@ def run_crslab(config, save_data=False, restore_data=False, save_system=False, r
 
     """
     # dataset & dataloader
-    if isinstance(config['tokenize'], str):
-        CRS_dataset = get_dataset(config, config['tokenize'], restore_data, save_data)
+    if isinstance(config["tokenize"], str):
+        CRS_dataset = get_dataset(config, config["tokenize"], restore_data, save_data)
         side_data = CRS_dataset.side_data
         vocab = CRS_dataset.vocab
 
@@ -49,7 +57,7 @@ def run_crslab(config, save_data=False, restore_data=False, save_system=False, r
         vocab = {}
         side_data = {}
 
-        for task, tokenize in config['tokenize'].items():
+        for task, tokenize in config["tokenize"].items():
             if tokenize in tokenized_dataset:
                 dataset = tokenized_dataset[tokenize]
             else:
@@ -65,8 +73,18 @@ def run_crslab(config, save_data=False, restore_data=False, save_system=False, r
             valid_dataloader[task] = get_dataloader(config, valid_data, vocab[task])
             test_dataloader[task] = get_dataloader(config, test_data, vocab[task])
     # system
-    CRS = get_system(config, train_dataloader, valid_dataloader, test_dataloader, vocab, side_data, restore_system,
-                     interact, debug, tensorboard)
+    CRS = get_system(
+        config,
+        train_dataloader,
+        valid_dataloader,
+        test_dataloader,
+        vocab,
+        side_data,
+        restore_system,
+        interact,
+        debug,
+        tensorboard,
+    )
     if interact:
         CRS.interact()
     else:

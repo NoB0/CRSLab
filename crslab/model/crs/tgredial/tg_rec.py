@@ -34,7 +34,7 @@ from crslab.model.recommendation.sasrec.modules import SASRec
 
 class TGRecModel(BaseModel):
     """
-        
+
     Attributes:
         hidden_dropout_prob: A float indicating the dropout rate to dropout hidden state in SASRec.
         initializer_range: A float indicating the range of parameters initization in SASRec.
@@ -58,18 +58,18 @@ class TGRecModel(BaseModel):
             side_data (dict): A dictionary record the side data.
 
         """
-        self.hidden_dropout_prob = opt['hidden_dropout_prob']
-        self.initializer_range = opt['initializer_range']
-        self.hidden_size = opt['hidden_size']
-        self.max_seq_length = opt['max_history_items']
-        self.item_size = vocab['n_entity'] + 1
-        self.num_attention_heads = opt['num_attention_heads']
-        self.attention_probs_dropout_prob = opt['attention_probs_dropout_prob']
-        self.hidden_act = opt['hidden_act']
-        self.num_hidden_layers = opt['num_hidden_layers']
+        self.hidden_dropout_prob = opt["hidden_dropout_prob"]
+        self.initializer_range = opt["initializer_range"]
+        self.hidden_size = opt["hidden_size"]
+        self.max_seq_length = opt["max_history_items"]
+        self.item_size = vocab["n_entity"] + 1
+        self.num_attention_heads = opt["num_attention_heads"]
+        self.attention_probs_dropout_prob = opt["attention_probs_dropout_prob"]
+        self.hidden_act = opt["hidden_act"]
+        self.num_hidden_layers = opt["num_hidden_layers"]
 
-        language = dataset_language_map[opt['dataset']]
-        resource = resources['bert'][language]
+        language = dataset_language_map[opt["dataset"]]
+        resource = resources["bert"][language]
         dpath = os.path.join(PRETRAIN_PATH, "bert", language)
         super(TGRecModel, self).__init__(opt, device, dpath, resource)
 
@@ -79,30 +79,38 @@ class TGRecModel(BaseModel):
         self.bert_hidden_size = self.bert.config.hidden_size
         self.concat_embed_size = self.bert_hidden_size + self.hidden_size
         self.fusion = nn.Linear(self.concat_embed_size, self.item_size)
-        self.SASREC = SASRec(self.hidden_dropout_prob, self.device,
-                             self.initializer_range, self.hidden_size,
-                             self.max_seq_length, self.item_size,
-                             self.num_attention_heads,
-                             self.attention_probs_dropout_prob,
-                             self.hidden_act, self.num_hidden_layers)
+        self.SASREC = SASRec(
+            self.hidden_dropout_prob,
+            self.device,
+            self.initializer_range,
+            self.hidden_size,
+            self.max_seq_length,
+            self.item_size,
+            self.num_attention_heads,
+            self.attention_probs_dropout_prob,
+            self.hidden_act,
+            self.num_hidden_layers,
+        )
 
         # this loss may conduct to some weakness
         self.rec_loss = nn.CrossEntropyLoss()
 
-        logger.debug('[Finish build rec layer]')
+        logger.debug("[Finish build rec layer]")
 
     def forward(self, batch, mode):
         context, mask, input_ids, target_pos, input_mask, sample_negs, y = batch
 
         bert_embed = self.bert(context, attention_mask=mask).pooler_output
 
-        sequence_output = self.SASREC(input_ids, input_mask)  # bs, max_len, hidden_size2
+        sequence_output = self.SASREC(
+            input_ids, input_mask
+        )  # bs, max_len, hidden_size2
         sas_embed = sequence_output[:, -1, :]  # bs, hidden_size2
 
         embed = torch.cat((sas_embed, bert_embed), dim=1)
         rec_scores = self.fusion(embed)  # bs, item_size
 
-        if mode == 'infer':
+        if mode == "infer":
             return rec_scores
         else:
             rec_loss = self.rec_loss(rec_scores, y)
